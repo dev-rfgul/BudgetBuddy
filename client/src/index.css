@@ -1,0 +1,185 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Primary (Budget Green) */
+  --background: hsl(210 20% 98%);
+  --foreground: hsl(210 40% 18%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(210 40% 18%);
+  --primary: hsl(145 63% 49%);
+  --primary-foreground: hsl(0 0% 100%);
+  
+  /* Secondary (Overspend Red) */
+  --secondary: hsl(4 66% 58%);
+  --secondary-foreground: hsl(0 0% 100%);
+  
+  /* Accent (Info Blue) */
+  --accent: hsl(207 90% 54%);
+  --accent-foreground: hsl(0 0% 100%);
+  
+  /* Success (Allocation Green) */
+  --success: hsl(142 76% 43%);
+  --success-foreground: hsl(0 0% 100%);
+  
+  /* Destructive (same as secondary for consistency) */
+  --destructive: hsl(4 66% 58%);
+  --destructive-foreground: hsl(0 0% 100%);
+  
+  /* Muted colors */
+  --muted: hsl(210 40% 96%);
+  --muted-foreground: hsl(215 16% 47%);
+  
+  /* Popover colors */
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(210 40% 18%);
+  
+  /* Border and input */
+  --border: hsl(214 32% 91%);
+  --input: hsl(214 32% 91%);
+  --ring: hsl(145 63% 49%);
+  
+  /* Chart colors */
+  --chart-1: hsl(145 63% 49%);
+  --chart-2: hsl(207 90% 54%);
+  --chart-3: hsl(4 66% 58%);
+  --chart-4: hsl(45 93% 47%);
+  --chart-5: hsl(271 81% 56%);
+  
+  /* Sidebar colors */
+  --sidebar: hsl(0 0% 100%);
+  --sidebar-foreground: hsl(210 40% 18%);
+  --sidebar-primary: hsl(145 63% 49%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(210 40% 96%);
+  --sidebar-accent-foreground: hsl(145 63% 49%);
+  --sidebar-border: hsl(214 32% 91%);
+  --sidebar-ring: hsl(145 63% 49%);
+  
+  /* Fonts */
+  --font-sans: Inter, sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: Menlo, monospace;
+  
+  /* Radius */
+  --radius: 0.75rem;
+  
+  /* Shadows */
+  --shadow-2xs: 0px 2px 0px 0px hsl(145 63% 49% / 0.00);
+  --shadow-xs: 0px 2px 0px 0px hsl(145 63% 49% / 0.00);
+  --shadow-sm: 0px 2px 0px 0px hsl(145 63% 49% / 0.00), 0px 1px 2px -1px hsl(145 63% 49% / 0.00);
+  --shadow: 0px 2px 0px 0px hsl(145 63% 49% / 0.00), 0px 1px 2px -1px hsl(145 63% 49% / 0.00);
+  --shadow-md: 0px 2px 0px 0px hsl(145 63% 49% / 0.00), 0px 2px 4px -1px hsl(145 63% 49% / 0.00);
+  --shadow-lg: 0px 2px 0px 0px hsl(145 63% 49% / 0.00), 0px 4px 6px -1px hsl(145 63% 49% / 0.00);
+  --shadow-xl: 0px 2px 0px 0px hsl(145 63% 49% / 0.00), 0px 8px 10px -1px hsl(145 63% 49% / 0.00);
+  --shadow-2xl: 0px 2px 0px 0px hsl(145 63% 49% / 0.00);
+  
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+}
+
+.dark {
+  --background: hsl(0 0% 0%);
+  --foreground: hsl(200 6.6667% 91.1765%);
+  --card: hsl(228 9.8039% 10%);
+  --card-foreground: hsl(0 0% 85.0980%);
+  --popover: hsl(0 0% 0%);
+  --popover-foreground: hsl(200 6.6667% 91.1765%);
+  --primary: hsl(145 63% 49%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(4 66% 58%);
+  --secondary-foreground: hsl(0 0% 100%);
+  --muted: hsl(0 0% 9.4118%);
+  --muted-foreground: hsl(210 3.3898% 46.2745%);
+  --accent: hsl(207 90% 54%);
+  --accent-foreground: hsl(0 0% 100%);
+  --destructive: hsl(4 66% 58%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --success: hsl(142 76% 43%);
+  --success-foreground: hsl(0 0% 100%);
+  --border: hsl(210 5.2632% 14.9020%);
+  --input: hsl(207.6923 27.6596% 18.4314%);
+  --ring: hsl(145 63% 49%);
+  --chart-1: hsl(145 63% 49%);
+  --chart-2: hsl(207 90% 54%);
+  --chart-3: hsl(4 66% 58%);
+  --chart-4: hsl(45 93% 47%);
+  --chart-5: hsl(271 81% 56%);
+  --sidebar: hsl(228 9.8039% 10%);
+  --sidebar-foreground: hsl(0 0% 85.0980%);
+  --sidebar-primary: hsl(145 63% 49%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(205.7143 70% 7.8431%);
+  --sidebar-accent-foreground: hsl(145 63% 49%);
+  --sidebar-border: hsl(205.7143 15.7895% 26.0784%);
+  --sidebar-ring: hsl(145 63% 49%);
+  --font-sans: Inter, sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: Menlo, monospace;
+  --radius: 0.75rem;
+  --shadow-2xs: 0px 2px 0px 0px hsl(145 63% 49% / 0.00);
+  --shadow-xs: 0px 2px 0px 0px hsl(145 63% 49% / 0.00);
+  --shadow-sm: 0px 2px 0px 0px hsl(145 63% 49% / 0.00), 0px 1px 2px -1px hsl(145 63% 49% / 0.00);
+  --shadow: 0px 2px 0px 0px hsl(145 63% 49% / 0.00), 0px 1px 2px -1px hsl(145 63% 49% / 0.00);
+  --shadow-md: 0px 2px 0px 0px hsl(145 63% 49% / 0.00), 0px 2px 4px -1px hsl(145 63% 49% / 0.00);
+  --shadow-lg: 0px 2px 0px 0px hsl(145 63% 49% / 0.00), 0px 4px 6px -1px hsl(145 63% 49% / 0.00);
+  --shadow-xl: 0px 2px 0px 0px hsl(145 63% 49% / 0.00), 0px 8px 10px -1px hsl(145 63% 49% / 0.00);
+  --shadow-2xl: 0px 2px 0px 0px hsl(145 63% 49% / 0.00);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}
+
+/* PWA specific styles */
+.budget-progress {
+  background: linear-gradient(to right, var(--primary) var(--progress-width, 0%), var(--muted) var(--progress-width, 0%));
+}
+
+.budget-overspend {
+  background: linear-gradient(to right, var(--destructive) var(--progress-width, 0%), var(--muted) var(--progress-width, 0%));
+}
+
+.install-prompt {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+}
+
+.chart-container {
+  position: relative;
+  height: 300px;
+  width: 100%;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
