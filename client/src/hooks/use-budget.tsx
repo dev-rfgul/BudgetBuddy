@@ -30,7 +30,7 @@ export function useBudgetSummary(budgetId: string | undefined) {
 
 export function useCreateBudget() {
   return useMutation({
-    mutationFn: async (budgetData: { monthlyIncome: number; month: string }) => {
+    mutationFn: async (budgetData: { monthlyIncome: string; month: string }) => {
       const response = await apiRequest("POST", "/api/budget", budgetData);
       return response.json();
     },
@@ -42,7 +42,7 @@ export function useCreateBudget() {
 
 export function useUpdateBudget() {
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<{ monthlyIncome: number; month: string }> }) => {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<{ monthlyIncome: string; month: string }> }) => {
       const response = await apiRequest("PUT", `/api/budget/${id}`, data);
       return response.json();
     },

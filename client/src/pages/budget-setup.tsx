@@ -30,7 +30,7 @@ export default function BudgetSetup() {
       const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
       
       await createBudget.mutateAsync({
-        monthlyIncome: parseFloat(monthlyIncome),
+        monthlyIncome: monthlyIncome,
         month: currentMonth,
       });
 

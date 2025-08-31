@@ -51,6 +51,7 @@ export class MemStorage implements IStorage {
       const category: Category = {
         id,
         ...cat,
+        isDefault: cat.isDefault ?? false,
         createdAt: new Date(),
       };
       this.categories.set(id, category);
