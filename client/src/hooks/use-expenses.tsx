@@ -22,7 +22,7 @@ export function useCreateExpense() {
     mutationFn: async ({ budgetId, expenseData }: { 
       budgetId: string; 
       expenseData: { 
-        amount: number; 
+        amount: string; 
         description: string; 
         categoryId: string; 
         date: string; 

@@ -31,10 +31,10 @@ export default function AddExpenseModal({ open, onOpenChange, budgetId }: AddExp
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!amount || !description || !categoryId) {
+    if (!amount || !categoryId) {
       toast({
         title: "Error",
-        description: "Please fill in all required fields",
+        description: "Please fill in amount and select a category",
         variant: "destructive",
       });
       return;
@@ -44,8 +44,8 @@ export default function AddExpenseModal({ open, onOpenChange, budgetId }: AddExp
       await createExpense.mutateAsync({
         budgetId,
         expenseData: {
-          amount: parseFloat(amount),
-          description,
+          amount: amount,
+          description: description || "",
           categoryId,
           date,
         },
@@ -114,7 +114,7 @@ export default function AddExpenseModal({ open, onOpenChange, budgetId }: AddExp
           </div>
           
           <div>
-            <Label htmlFor="description">Description *</Label>
+            <Label htmlFor="description">Description (optional)</Label>
             <Input
               id="description"
               type="text"
@@ -122,7 +122,6 @@ export default function AddExpenseModal({ open, onOpenChange, budgetId }: AddExp
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               data-testid="input-description"
-              required
             />
           </div>
           

@@ -30,7 +30,7 @@ export const budgetAllocations = pgTable("budget_allocations", {
 export const expenses = pgTable("expenses", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  description: text("description").notNull(),
+  description: text("description").default(""),
   categoryId: varchar("category_id").notNull().references(() => categories.id),
   budgetId: varchar("budget_id").notNull().references(() => budgets.id),
   date: timestamp("date").notNull(),
