@@ -1,19 +1,17 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { apiRequest } from "@/lib/queryClient";
+import { localStorageService } from "@/lib/localStorage";
 import { type Budget, type BudgetSummary } from "@shared/schema";
 
 export function useCurrentBudget() {
   const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
   
   return useQuery<Budget | null>({
-    queryKey: ["/api/budget", currentMonth],
+    queryKey: ["budget", currentMonth],
     queryFn: async () => {
       try {
-        const response = await fetch(`/api/budget/${currentMonth}`);
-        if (response.status === 404) return null;
-        if (!response.ok) throw new Error("Failed to fetch budget");
-        return response.json();
+        const budget = await localStorageService.getBudget(currentMonth);
+        return budget || null;
       } catch (error) {
         return null;
       }
@@ -23,7 +21,11 @@ export function useCurrentBudget() {
 
 export function useBudgetSummary(budgetId: string | undefined) {
   return useQuery<BudgetSummary>({
-    queryKey: ["/api/budget", budgetId, "summary"],
+    queryKey: ["budget", budgetId, "summary"],
+    queryFn: async () => {
+      if (!budgetId) throw new Error("Budget ID is required");
+      return await localStorageService.getBudgetSummary(budgetId);
+    },
     enabled: !!budgetId,
   });
 }
@@ -31,11 +33,10 @@ export function useBudgetSummary(budgetId: string | undefined) {
 export function useCreateBudget() {
   return useMutation({
     mutationFn: async (budgetData: { monthlyIncome: string; month: string }) => {
-      const response = await apiRequest("POST", "/api/budget", budgetData);
-      return response.json();
+      return await localStorageService.createBudget(budgetData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/budget"] });
+      queryClient.invalidateQueries({ queryKey: ["budget"] });
     },
   });
 }
@@ -43,11 +44,10 @@ export function useCreateBudget() {
 export function useUpdateBudget() {
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<{ monthlyIncome: string; month: string }> }) => {
-      const response = await apiRequest("PUT", `/api/budget/${id}`, data);
-      return response.json();
+      return await localStorageService.updateBudget(id, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/budget"] });
+      queryClient.invalidateQueries({ queryKey: ["budget"] });
     },
   });
 }

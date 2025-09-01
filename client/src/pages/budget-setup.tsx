@@ -10,7 +10,8 @@ import { DollarSign, Plus, ShoppingCart, Car, FileText, Zap, Smile, Trash2 } fro
 import { useCreateBudget } from "@/hooks/use-budget";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
+import { localStorageService } from "@/lib/localStorage";
 import { type Category } from "@shared/schema";
 
 const iconOptions = [
@@ -43,20 +44,20 @@ export default function BudgetSetup() {
   const createBudget = useCreateBudget();
 
   const { data: categories = [], refetch: refetchCategories } = useQuery<Category[]>({
-    queryKey: ["/api/categories"],
+    queryKey: ["categories"],
+    queryFn: async () => await localStorageService.getCategories(),
     enabled: step === 2,
   });
 
   const createCategoryMutation = useMutation({
     mutationFn: async (categoryData: { name: string; icon: string; color: string }) => {
-      const response = await apiRequest("POST", "/api/categories", {
+      return await localStorageService.createCategory({
         ...categoryData,
         isDefault: false,
       });
-      return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
       refetchCategories();
       setShowCreateCategory(false);
       setNewCategoryName("");
@@ -72,7 +73,8 @@ export default function BudgetSetup() {
   const createAllocationsMutation = useMutation({
     mutationFn: async (allocationData: { budgetId: string; allocations: {categoryId: string; amount: string}[] }) => {
       const promises = allocationData.allocations.map(allocation => 
-        apiRequest("POST", `/api/budget/${allocationData.budgetId}/allocations`, {
+        localStorageService.createBudgetAllocation({
+          budgetId: allocationData.budgetId,
           categoryId: allocation.categoryId,
           allocatedAmount: allocation.amount,
         })

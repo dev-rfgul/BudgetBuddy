@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCreateExpense } from "@/hooks/use-expenses";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { localStorageService } from "@/lib/localStorage";
 import { type Category } from "@shared/schema";
 
 interface AddExpenseModalProps {
@@ -25,7 +26,8 @@ export default function AddExpenseModal({ open, onOpenChange, budgetId }: AddExp
   const createExpense = useCreateExpense();
   
   const { data: categories = [] } = useQuery<Category[]>({
-    queryKey: ["/api/categories"],
+    queryKey: ["categories"],
+    queryFn: async () => await localStorageService.getCategories(),
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
