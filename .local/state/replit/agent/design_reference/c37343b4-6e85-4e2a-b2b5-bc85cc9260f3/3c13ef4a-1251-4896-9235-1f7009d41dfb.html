@@ -1,0 +1,974 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BudgetTracker PWA - Smart Expense Management</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#2ECC71">
+    <link rel="icon" type="image/png" href="/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Heroicons -->
+    <script src="https://unpkg.com/heroicons@2.0.18/24/outline/index.js" type="module"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                borderRadius: {
+                    lg: "var(--radius)",
+                    md: "calc(var(--radius) - 2px)",
+                    sm: "calc(var(--radius) - 4px)",
+                },
+                colors: {
+                    background: "var(--background)",
+                    foreground: "var(--foreground)",
+                    card: {
+                        DEFAULT: "var(--card)",
+                        foreground: "var(--card-foreground)",
+                    },
+                    primary: {
+                        DEFAULT: "var(--primary)",
+                        foreground: "var(--primary-foreground)",
+                    },
+                    secondary: {
+                        DEFAULT: "var(--secondary)",
+                        foreground: "var(--secondary-foreground)",
+                    },
+                    muted: {
+                        DEFAULT: "var(--muted)",
+                        foreground: "var(--muted-foreground)",
+                    },
+                    accent: {
+                        DEFAULT: "var(--accent)",
+                        foreground: "var(--accent-foreground)",
+                    },
+                    destructive: {
+                        DEFAULT: "var(--destructive)",
+                        foreground: "var(--destructive-foreground)",
+                    },
+                    success: {
+                        DEFAULT: "var(--success)",
+                        foreground: "var(--success-foreground)",
+                    },
+                    border: "var(--border)",
+                    input: "var(--input)",
+                    ring: "var(--ring)",
+                },
+                fontFamily: {
+                    sans: ["Inter", "sans-serif"],
+                }
+            },
+        }
+    };
+    </script>
+    
+    <style>
+        :root {
+            --background: hsl(210 20% 98%);
+            --foreground: hsl(210 40% 18%);
+            --card: hsl(0 0% 100%);
+            --card-foreground: hsl(210 40% 18%);
+            --primary: hsl(145 63% 49%);
+            --primary-foreground: hsl(0 0% 100%);
+            --secondary: hsl(4 66% 58%);
+            --secondary-foreground: hsl(0 0% 100%);
+            --muted: hsl(210 40% 96%);
+            --muted-foreground: hsl(215 16% 47%);
+            --accent: hsl(207 90% 54%);
+            --accent-foreground: hsl(0 0% 100%);
+            --destructive: hsl(4 66% 58%);
+            --destructive-foreground: hsl(0 0% 100%);
+            --success: hsl(142 76% 43%);
+            --success-foreground: hsl(0 0% 100%);
+            --border: hsl(214 32% 91%);
+            --input: hsl(214 32% 91%);
+            --ring: hsl(145 63% 49%);
+            --radius: 0.75rem;
+        }
+        
+        .budget-progress {
+            background: linear-gradient(to right, var(--primary) var(--progress-width, 0%), var(--muted) var(--progress-width, 0%));
+        }
+        
+        .budget-overspend {
+            background: linear-gradient(to right, var(--secondary) var(--progress-width, 0%), var(--muted) var(--progress-width, 0%));
+        }
+        
+        /* PWA Install Prompt Styles */
+        .install-prompt {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+        }
+        
+        /* Chart responsive container */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        
+        /* Hide scrollbar but keep functionality */
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        
+        /* Animation classes */
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .slide-up {
+            animation: slideUp 0.3s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-background text-foreground font-sans antialiased">
+    <!-- @COMPONENT: MainApp [Main application container with navigation and views] -->
+    <div class="min-h-screen bg-background">
+        <!-- PWA Install Banner -->
+        <!-- @COMPONENT: PWAInstallBanner [Shows install prompt for PWA] -->
+        <div id="installBanner" class="install-prompt text-white p-4 hidden">
+            <div class="flex items-center justify-between max-w-md mx-auto">
+                <div class="flex items-center space-x-3">
+                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                    </svg>
+                    <div>
+                        <p class="font-semibold">Install BudgetTracker</p>
+                        <p class="text-sm opacity-90">Access offline anytime</p>
+                    </div>
+                </div>
+                <div class="flex space-x-2">
+                    <button id="installApp" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                        Install
+                    </button>
+                    <button id="dismissInstall" class="text-white/80 hover:text-white p-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: PWAInstallBanner -->
+
+        <!-- Header -->
+        <!-- @COMPONENT: AppHeader [Top navigation with title and quick actions] -->
+        <header class="bg-card border-b border-border sticky top-0 z-40">
+            <div class="max-w-md mx-auto px-4 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                            <svg class="w-5 h-5 text-primary-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 class="font-semibold text-lg">BudgetTracker</h1>
+                            <p class="text-xs text-muted-foreground" data-bind="currentMonth">December 2024</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button class="p-2 hover:bg-muted rounded-lg transition-colors">
+                            <svg class="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5-5-5h5v-12"/>
+                            </svg>
+                        </button>
+                        <button class="p-2 hover:bg-muted rounded-lg transition-colors">
+                            <svg class="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <!-- @END_COMPONENT: AppHeader -->
+
+        <!-- Main Content -->
+        <main class="max-w-md mx-auto pb-20">
+            <!-- Budget Overview Section -->
+            <!-- @COMPONENT: BudgetOverview [Displays total budget summary] -->
+            <section class="p-4">
+                <div class="bg-card rounded-xl p-6 shadow-sm border border-border">
+                    <div class="text-center mb-6">
+                        <p class="text-sm text-muted-foreground mb-2">Monthly Budget</p>
+                        <p class="text-3xl font-bold text-foreground" data-bind="monthlyBudget" data-mock="true">$3,200</p>
+                        <div class="flex justify-center items-center mt-2 space-x-4 text-sm">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 bg-primary rounded-full mr-2"></div>
+                                <span class="text-muted-foreground">Allocated: </span>
+                                <span class="font-medium ml-1" data-bind="totalAllocated" data-mock="true">$2,850</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 bg-muted rounded-full mr-2"></div>
+                                <span class="text-muted-foreground">Remaining: </span>
+                                <span class="font-medium ml-1 text-primary" data-bind="remainingBudget" data-mock="true">$350</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Progress Bar -->
+                    <div class="w-full bg-muted rounded-full h-3 mb-4">
+                        <div class="bg-primary h-3 rounded-full transition-all duration-300" style="width: 89%"></div>
+                    </div>
+                    
+                    <!-- Quick Stats -->
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="text-center">
+                            <p class="text-sm text-muted-foreground">Spent</p>
+                            <p class="font-semibold text-foreground" data-bind="totalSpent" data-mock="true">$1,247</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-sm text-muted-foreground">Categories</p>
+                            <p class="font-semibold text-foreground" data-bind="categoryCount" data-mock="true">7</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-sm text-muted-foreground">Days Left</p>
+                            <p class="font-semibold text-foreground" data-bind="daysLeft" data-mock="true">18</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- @END_COMPONENT: BudgetOverview -->
+
+            <!-- Quick Add Expense -->
+            <!-- @COMPONENT: QuickAddExpense [Quick expense entry form] -->
+            <section class="px-4 mb-6">
+                <button id="quickAddBtn" class="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-4 px-6 rounded-xl transition-colors flex items-center justify-center space-x-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    </svg>
+                    <span>Add Expense</span>
+                </button>
+            </section>
+            <!-- @END_COMPONENT: QuickAddExpense -->
+
+            <!-- Budget Categories -->
+            <!-- @COMPONENT: BudgetCategories [List of budget category tiles] -->
+            <section class="px-4">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold">Budget Categories</h2>
+                    <button class="text-accent hover:text-accent/80 text-sm font-medium" data-event="click:manageCategories">
+                        Manage
+                    </button>
+                </div>
+                
+                <!-- @MAP: budgetCategories.map(category => ( -->
+                <div class="space-y-3">
+                    <!-- Groceries Category -->
+                    <div class="bg-card rounded-xl p-4 shadow-sm border border-border">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2-10M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17M17 13v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium" data-mock="true">Groceries</h3>
+                                    <p class="text-sm text-muted-foreground" data-bind="category.transactionCount" data-mock="true">12 transactions</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-semibold" data-bind="category.spent" data-mock="true">$347</p>
+                                <p class="text-sm text-muted-foreground">of <span data-bind="category.allocated" data-mock="true">$500</span></p>
+                            </div>
+                        </div>
+                        <div class="w-full bg-muted rounded-full h-2">
+                            <div class="bg-primary h-2 rounded-full transition-all duration-300" style="width: 69%"></div>
+                        </div>
+                        <div class="flex justify-between text-sm mt-2">
+                            <span class="text-muted-foreground">69% used</span>
+                            <span class="text-primary font-medium" data-bind="category.remaining" data-mock="true">$153 left</span>
+                        </div>
+                    </div>
+
+                    <!-- Transport Category -->
+                    <div class="bg-card rounded-xl p-4 shadow-sm border border-border">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium" data-mock="true">Transport</h3>
+                                    <p class="text-sm text-muted-foreground" data-bind="category.transactionCount" data-mock="true">8 transactions</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-semibold" data-bind="category.spent" data-mock="true">$180</p>
+                                <p class="text-sm text-muted-foreground">of <span data-bind="category.allocated" data-mock="true">$250</span></p>
+                            </div>
+                        </div>
+                        <div class="w-full bg-muted rounded-full h-2">
+                            <div class="bg-primary h-2 rounded-full transition-all duration-300" style="width: 72%"></div>
+                        </div>
+                        <div class="flex justify-between text-sm mt-2">
+                            <span class="text-muted-foreground">72% used</span>
+                            <span class="text-primary font-medium" data-bind="category.remaining" data-mock="true">$70 left</span>
+                        </div>
+                    </div>
+
+                    <!-- Bills Category (Overspend) -->
+                    <div class="bg-card rounded-xl p-4 shadow-sm border border-border">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium" data-mock="true">Bills</h3>
+                                    <p class="text-sm text-muted-foreground" data-bind="category.transactionCount" data-mock="true">5 transactions</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-semibold text-destructive" data-bind="category.spent" data-mock="true">$620</p>
+                                <p class="text-sm text-muted-foreground">of <span data-bind="category.allocated" data-mock="true">$600</span></p>
+                            </div>
+                        </div>
+                        <div class="w-full bg-muted rounded-full h-2">
+                            <div class="bg-destructive h-2 rounded-full transition-all duration-300" style="width: 100%"></div>
+                        </div>
+                        <div class="flex justify-between text-sm mt-2">
+                            <span class="text-muted-foreground">103% used</span>
+                            <span class="text-destructive font-medium" data-bind="category.remaining" data-mock="true">$20 over</span>
+                        </div>
+                    </div>
+
+                    <!-- Utilities Category -->
+                    <div class="bg-card rounded-xl p-4 shadow-sm border border-border">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium" data-mock="true">Utilities</h3>
+                                    <p class="text-sm text-muted-foreground" data-bind="category.transactionCount" data-mock="true">3 transactions</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-semibold" data-bind="category.spent" data-mock="true">$125</p>
+                                <p class="text-sm text-muted-foreground">of <span data-bind="category.allocated" data-mock="true">$200</span></p>
+                            </div>
+                        </div>
+                        <div class="w-full bg-muted rounded-full h-2">
+                            <div class="bg-primary h-2 rounded-full transition-all duration-300" style="width: 62%"></div>
+                        </div>
+                        <div class="flex justify-between text-sm mt-2">
+                            <span class="text-muted-foreground">62% used</span>
+                            <span class="text-primary font-medium" data-bind="category.remaining" data-mock="true">$75 left</span>
+                        </div>
+                    </div>
+
+                    <!-- Entertainment (Custom Category) -->
+                    <div class="bg-card rounded-xl p-4 shadow-sm border border-border">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.5a2.5 2.5 0 110 5H9m4.5-1.206a11.955 11.955 0 01-4.06 2.85l-.086.035c-.395.155-.828-.414-.673-.809a11.955 11.955 0 012.85-4.06M18 12a6 6 0 11-12 0 6 6 0 0112 0z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium" data-mock="true">Entertainment</h3>
+                                    <p class="text-sm text-muted-foreground" data-bind="category.transactionCount" data-mock="true">6 transactions</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-semibold" data-bind="category.spent" data-mock="true">$85</p>
+                                <p class="text-sm text-muted-foreground">of <span data-bind="category.allocated" data-mock="true">$150</span></p>
+                            </div>
+                        </div>
+                        <div class="w-full bg-muted rounded-full h-2">
+                            <div class="bg-primary h-2 rounded-full transition-all duration-300" style="width: 57%"></div>
+                        </div>
+                        <div class="flex justify-between text-sm mt-2">
+                            <span class="text-muted-foreground">57% used</span>
+                            <span class="text-primary font-medium" data-bind="category.remaining" data-mock="true">$65 left</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_MAP )) -->
+            </section>
+            <!-- @END_COMPONENT: BudgetCategories -->
+
+            <!-- Recent Transactions -->
+            <!-- @COMPONENT: RecentTransactions [List of recent expense entries] -->
+            <section class="p-4 mt-8">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold">Recent Transactions</h2>
+                    <button class="text-accent hover:text-accent/80 text-sm font-medium" data-event="click:viewAllTransactions">
+                        View All
+                    </button>
+                </div>
+                
+                <div class="space-y-3">
+                    <!-- @MAP: recentTransactions.map(transaction => ( -->
+                    <div class="bg-card rounded-lg p-4 shadow-sm border border-border">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2-10M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17M17 13v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="font-medium" data-bind="transaction.description" data-mock="true">Whole Foods</p>
+                                    <p class="text-sm text-muted-foreground" data-bind="transaction.category" data-mock="true">Groceries • <span data-bind="transaction.date" data-mock="true">Dec 13</span></p>
+                                </div>
+                            </div>
+                            <p class="font-semibold" data-bind="transaction.amount" data-mock="true">-$47.85</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-card rounded-lg p-4 shadow-sm border border-border">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="font-medium" data-bind="transaction.description" data-mock="true">Uber Ride</p>
+                                    <p class="text-sm text-muted-foreground" data-bind="transaction.category" data-mock="true">Transport • <span data-bind="transaction.date" data-mock="true">Dec 12</span></p>
+                                </div>
+                            </div>
+                            <p class="font-semibold" data-bind="transaction.amount" data-mock="true">-$18.50</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-card rounded-lg p-4 shadow-sm border border-border">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.5a2.5 2.5 0 110 5H9m4.5-1.206a11.955 11.955 0 01-4.06 2.85l-.086.035c-.395.155-.828-.414-.673-.809a11.955 11.955 0 012.85-4.06M18 12a6 6 0 11-12 0 6 6 0 0112 0z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="font-medium" data-bind="transaction.description" data-mock="true">Netflix Subscription</p>
+                                    <p class="text-sm text-muted-foreground" data-bind="transaction.category" data-mock="true">Entertainment • <span data-bind="transaction.date" data-mock="true">Dec 11</span></p>
+                                </div>
+                            </div>
+                            <p class="font-semibold" data-bind="transaction.amount" data-mock="true">-$15.99</p>
+                        </div>
+                    </div>
+                    <!-- @END_MAP )) -->
+                </div>
+            </section>
+            <!-- @END_COMPONENT: RecentTransactions -->
+
+            <!-- Analytics Preview -->
+            <!-- @COMPONENT: AnalyticsPreview [Charts showing spending trends] -->
+            <section class="p-4 mt-8">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold">Spending Analytics</h2>
+                    <button id="analyticsTabBtn" class="text-accent hover:text-accent/80 text-sm font-medium" data-event="click:showAnalytics">
+                        View Details
+                    </button>
+                </div>
+                
+                <div class="bg-card rounded-xl p-6 shadow-sm border border-border">
+                    <h3 class="font-medium mb-4">Weekly Spending Trend</h3>
+                    <div class="chart-container">
+                        <canvas id="weeklyChart"></canvas>
+                    </div>
+                </div>
+            </section>
+            <!-- @END_COMPONENT: AnalyticsPreview -->
+        </main>
+
+        <!-- Add Expense Modal -->
+        <!-- @COMPONENT: AddExpenseModal [Modal for adding new expenses] -->
+        <div id="addExpenseModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden">
+            <div class="flex items-end justify-center min-h-screen p-4">
+                <div class="bg-card rounded-t-xl w-full max-w-md slide-up">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-semibold">Add Expense</h3>
+                            <button id="closeModal" class="p-2 hover:bg-muted rounded-lg transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <form class="space-y-4" data-implementation="Should handle expense submission and update localStorage">
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Amount</label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
+                                    <input type="number" step="0.01" placeholder="0.00" 
+                                           class="w-full pl-8 pr-4 py-3 bg-input border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent transition-colors" 
+                                           data-bind="expenseAmount">
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Category</label>
+                                <select class="w-full px-4 py-3 bg-input border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent transition-colors"
+                                        data-bind="expenseCategory">
+                                    <option value="" data-mock="true">Select a category</option>
+                                    <option value="groceries" data-mock="true">Groceries</option>
+                                    <option value="transport" data-mock="true">Transport</option>
+                                    <option value="bills" data-mock="true">Bills</option>
+                                    <option value="utilities" data-mock="true">Utilities</option>
+                                    <option value="entertainment" data-mock="true">Entertainment</option>
+                                    <!-- @MAP: customCategories.map(cat => <option value={cat.id}>{cat.name}</option>) -->
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Description</label>
+                                <input type="text" placeholder="What did you spend on?" 
+                                       class="w-full px-4 py-3 bg-input border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent transition-colors"
+                                       data-bind="expenseDescription">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Date</label>
+                                <input type="date" 
+                                       class="w-full px-4 py-3 bg-input border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent transition-colors"
+                                       data-bind="expenseDate">
+                            </div>
+                            
+                            <div class="flex space-x-3 pt-4">
+                                <button type="button" id="cancelExpense"
+                                        class="flex-1 px-6 py-3 border border-border text-foreground hover:bg-muted rounded-lg font-medium transition-colors">
+                                    Cancel
+                                </button>
+                                <button type="submit" 
+                                        class="flex-1 px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-colors">
+                                    Add Expense
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: AddExpenseModal -->
+
+        <!-- Analytics View -->
+        <!-- @COMPONENT: AnalyticsView [Full analytics dashboard with charts] -->
+        <div id="analyticsView" class="fixed inset-0 bg-background z-50 hidden overflow-y-auto">
+            <div class="max-w-md mx-auto">
+                <!-- Analytics Header -->
+                <header class="bg-card border-b border-border sticky top-0 z-40">
+                    <div class="px-4 py-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <button id="backToMain" class="p-2 hover:bg-muted rounded-lg transition-colors">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                                    </svg>
+                                </button>
+                                <h1 class="font-semibold text-lg">Analytics</h1>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button class="px-3 py-1.5 bg-primary text-primary-foreground text-sm rounded-lg font-medium">
+                                    Month
+                                </button>
+                                <button class="px-3 py-1.5 text-muted-foreground text-sm rounded-lg font-medium hover:bg-muted">
+                                    Week
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- Analytics Content -->
+                <div class="p-4 space-y-6">
+                    <!-- Monthly Overview Chart -->
+                    <div class="bg-card rounded-xl p-6 shadow-sm border border-border">
+                        <h3 class="font-medium mb-4">Monthly Spending Overview</h3>
+                        <div class="chart-container">
+                            <canvas id="monthlyChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Category Breakdown -->
+                    <div class="bg-card rounded-xl p-6 shadow-sm border border-border">
+                        <h3 class="font-medium mb-4">Spending by Category</h3>
+                        <div class="chart-container">
+                            <canvas id="categoryChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Spending Insights -->
+                    <div class="bg-card rounded-xl p-6 shadow-sm border border-border">
+                        <h3 class="font-medium mb-4">Insights</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center">
+                                        <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium text-sm" data-mock="true">Highest spending day</p>
+                                        <p class="text-xs text-muted-foreground" data-mock="true">December 8th - $186</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 bg-success/20 rounded-lg flex items-center justify-center">
+                                        <svg class="w-4 h-4 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium text-sm" data-mock="true">Average daily spending</p>
+                                        <p class="text-xs text-muted-foreground" data-mock="true">$41.56 (within budget)</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 bg-destructive/20 rounded-lg flex items-center justify-center">
+                                        <svg class="w-4 h-4 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.598 0L3.232 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium text-sm" data-mock="true">Bills over budget</p>
+                                        <p class="text-xs text-muted-foreground" data-mock="true">$20 over planned amount</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Budget vs Actual -->
+                    <div class="bg-card rounded-xl p-6 shadow-sm border border-border">
+                        <h3 class="font-medium mb-4">Budget vs Actual</h3>
+                        <div class="space-y-4">
+                            <!-- @MAP: categories.map(category => ( -->
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3 flex-1">
+                                    <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                                        <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2-10M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17M17 13v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6"/>
+                                        </svg>
+                                    </div>
+                                    <div class="flex-1">
+                                        <p class="font-medium text-sm" data-mock="true">Groceries</p>
+                                        <div class="w-full bg-muted rounded-full h-1.5 mt-1">
+                                            <div class="bg-primary h-1.5 rounded-full" style="width: 69%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-right ml-4">
+                                    <p class="text-sm font-medium" data-mock="true">$347</p>
+                                    <p class="text-xs text-muted-foreground" data-mock="true">of $500</p>
+                                </div>
+                            </div>
+                            <!-- @END_MAP )) -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: AnalyticsView -->
+
+        <!-- Bottom Navigation -->
+        <!-- @COMPONENT: BottomNavigation [Tab navigation for main app sections] -->
+        <nav class="fixed bottom-0 left-0 right-0 bg-card border-t border-border">
+            <div class="max-w-md mx-auto px-4">
+                <div class="flex items-center justify-around py-2">
+                    <button class="flex flex-col items-center space-y-1 py-2 px-4 text-primary" data-event="click:showDashboard">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/>
+                        </svg>
+                        <span class="text-xs font-medium">Dashboard</span>
+                    </button>
+                    
+                    <button class="flex flex-col items-center space-y-1 py-2 px-4 text-muted-foreground hover:text-foreground transition-colors" data-event="click:showTransactions">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                        <span class="text-xs font-medium">Transactions</span>
+                    </button>
+                    
+                    <button id="addExpenseNavBtn" class="flex flex-col items-center space-y-1 py-2 px-4 text-muted-foreground hover:text-foreground transition-colors" data-event="click:showAddExpense">
+                        <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5 text-primary-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
+                        </div>
+                        <span class="text-xs font-medium">Add</span>
+                    </button>
+                    
+                    <button class="flex flex-col items-center space-y-1 py-2 px-4 text-muted-foreground hover:text-foreground transition-colors" data-event="click:showAnalytics">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                        <span class="text-xs font-medium">Analytics</span>
+                    </button>
+                    
+                    <button class="flex flex-col items-center space-y-1 py-2 px-4 text-muted-foreground hover:text-foreground transition-colors" data-event="click:showBudget">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        <span class="text-xs font-medium">Budget</span>
+                    </button>
+                </div>
+            </div>
+        </nav>
+        <!-- @END_COMPONENT: BottomNavigation -->
+    </div>
+    <!-- @END_COMPONENT: MainApp -->
+
+    <script>
+        // TODO: Implement PWA service worker registration
+        // TODO: Implement localStorage data persistence
+        // TODO: Implement business logic for expense tracking
+        // TODO: Implement real-time budget calculations
+        
+        (() => {
+            // Initialize PWA install prompt
+            let deferredPrompt;
+            const installBanner = document.getElementById('installBanner');
+            const installBtn = document.getElementById('installApp');
+            const dismissBtn = document.getElementById('dismissInstall');
+
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                installBanner.classList.remove('hidden');
+            });
+
+            installBtn.addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    deferredPrompt = null;
+                    installBanner.classList.add('hidden');
+                }
+            });
+
+            dismissBtn.addEventListener('click', () => {
+                installBanner.classList.add('hidden');
+            });
+
+            // Modal functionality
+            const addExpenseModal = document.getElementById('addExpenseModal');
+            const quickAddBtn = document.getElementById('quickAddBtn');
+            const addExpenseNavBtn = document.getElementById('addExpenseNavBtn');
+            const closeModal = document.getElementById('closeModal');
+            const cancelExpense = document.getElementById('cancelExpense');
+
+            const showModal = () => {
+                addExpenseModal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            };
+
+            const hideModal = () => {
+                addExpenseModal.classList.add('hidden');
+                document.body.style.overflow = 'auto';
+            };
+
+            quickAddBtn.addEventListener('click', showModal);
+            addExpenseNavBtn.addEventListener('click', showModal);
+            closeModal.addEventListener('click', hideModal);
+            cancelExpense.addEventListener('click', hideModal);
+
+            // Close modal on backdrop click
+            addExpenseModal.addEventListener('click', (e) => {
+                if (e.target === addExpenseModal) {
+                    hideModal();
+                }
+            });
+
+            // Analytics view functionality
+            const analyticsView = document.getElementById('analyticsView');
+            const analyticsTabBtn = document.getElementById('analyticsTabBtn');
+            const backToMain = document.getElementById('backToMain');
+
+            analyticsTabBtn.addEventListener('click', () => {
+                analyticsView.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            });
+
+            backToMain.addEventListener('click', () => {
+                analyticsView.classList.add('hidden');
+                document.body.style.overflow = 'auto';
+            });
+
+            // Set today's date in expense form
+            const expenseDateInput = document.querySelector('input[type="date"]');
+            if (expenseDateInput) {
+                expenseDateInput.value = new Date().toISOString().split('T')[0];
+            }
+
+            // Initialize charts
+            const initCharts = () => {
+                // Weekly chart
+                const weeklyCtx = document.getElementById('weeklyChart');
+                if (weeklyCtx) {
+                    new Chart(weeklyCtx, {
+                        type: 'line',
+                        data: {
+                            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                            datasets: [{
+                                label: 'Daily Spending',
+                                data: [45, 78, 32, 156, 89, 23, 67],
+                                borderColor: 'hsl(145 63% 49%)',
+                                backgroundColor: 'hsl(145 63% 49% / 0.1)',
+                                tension: 0.4,
+                                fill: true
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    grid: {
+                                        color: 'hsl(214 32% 91%)'
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        display: false
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Monthly chart
+                const monthlyCtx = document.getElementById('monthlyChart');
+                if (monthlyCtx) {
+                    new Chart(monthlyCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                            datasets: [{
+                                label: 'Weekly Spending',
+                                data: [490, 723, 456, 578],
+                                backgroundColor: 'hsl(145 63% 49%)',
+                                borderRadius: 8
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    grid: {
+                                        color: 'hsl(214 32% 91%)'
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        display: false
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Category chart
+                const categoryCtx = document.getElementById('categoryChart');
+                if (categoryCtx) {
+                    new Chart(categoryCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Groceries', 'Transport', 'Bills', 'Utilities', 'Entertainment'],
+                            datasets: [{
+                                data: [347, 180, 620, 125, 85],
+                                backgroundColor: [
+                                    'hsl(145 63% 49%)',
+                                    'hsl(207 90% 54%)',
+                                    'hsl(4 66% 58%)',
+                                    'hsl(45 93% 47%)',
+                                    'hsl(271 81% 56%)'
+                                ],
+                                borderWidth: 0
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: {
+                                        usePointStyle: true,
+                                        padding: 20
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            };
+
+            // Initialize charts when DOM is ready
+            setTimeout(initCharts, 100);
+
+            // @STATE: budgetData:object = { monthlyBudget: 3200, categories: [...] }
+            // @STATE: expenses:array = []
+            // @STATE: currentView:string = 'dashboard'
+
+            // @FUNCTIONALITY: This app should implement full PWA functionality with localStorage
+            // @FUNCTIONALITY: Real-time budget calculations and category tracking
+            // @FUNCTIONALITY: Offline capability with service worker
+            // @FUNCTIONALITY: Data export and backup features
+        })();
+    </script>
+</body>
+</html>
