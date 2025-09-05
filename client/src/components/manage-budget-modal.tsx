@@ -125,9 +125,24 @@ export default function ManageBudgetModal({ open, onOpenChange, budgetId }: Mana
       await updateBudget.mutateAsync({ id: budgetId, data: { monthlyIncome: String(newTotal) } });
   // record income entry with optional note
   await localStorageService.createIncomeRecord({ budgetId, amount: String(amount), note: extraIncomeNote });
-      // invalidate so summary and UI update
+      // optimistic cache updates so UI reflects the new monthly budget immediately
+      queryClient.setQueryData(["budget", budgetId, "summary"], (old: any) => {
+        if (!old) return old;
+        const monthlyBudget = Number(old.monthlyBudget ?? 0) + amount;
+        const totalAllocated = old.totalAllocated ?? 0;
+        const totalSpent = old.totalSpent ?? 0;
+        const remainingBudget = monthlyBudget - totalAllocated;
+        return { ...old, monthlyBudget, totalAllocated, totalSpent, remainingBudget };
+      });
+      queryClient.setQueryData(["budget", budgetId], (old: any) => {
+        if (!old) return old;
+        return { ...old, monthlyIncome: String(Number(old.monthlyIncome ?? 0) + amount) };
+      });
+      // also invalidate so summary and UI update from authoritative source
       queryClient.invalidateQueries({ queryKey: ["budget", budgetId, "summary"] });
       queryClient.invalidateQueries({ queryKey: ["budget", budgetId] });
+  // refresh all queries to ensure any current-month budget cache keys are updated
+  queryClient.invalidateQueries();
       toast({ title: "Success", description: `Added $${amount.toLocaleString()} to monthly budget` });
       setExtraIncome("");
   setExtraIncomeNote("");
