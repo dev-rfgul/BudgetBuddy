@@ -3,7 +3,7 @@
 
 declare const self: ServiceWorkerGlobalScope;
 
-const CACHE_NAME = 'budget-tracker-v1';
+const CACHE_NAME = 'budget-tracker-v2';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',

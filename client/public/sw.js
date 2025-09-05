@@ -2,7 +2,7 @@
    Note: your TypeScript SW in src/service-worker.ts is fine for local dev but
    for production we ship a JS worker in `public/sw.js` so it's picked up after build.
 */
-const CACHE_NAME = 'budget-tracker-v1';
+const CACHE_NAME = 'budget-tracker-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -32,17 +32,37 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   if (event.request.url.includes('/api/')) return;
 
+  const acceptHeader = event.request.headers.get('accept') || '';
+  const isNavigation = event.request.mode === 'navigate' || acceptHeader.indexOf('text/html') !== -1;
+
+  // For navigation requests (index.html) use network-first so soft reloads get latest HTML
+  if (isNavigation) {
+    event.respondWith(
+      fetch(event.request, { cache: 'no-cache' }).then((networkResponse) => {
+        // Update the cache with the latest index.html for offline fallback
+        const responseClone = networkResponse.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', responseClone));
+        return networkResponse;
+      }).catch(() => {
+        // Network failed, serve cached index or offline page
+        return caches.match('/index.html').then((cached) => cached || caches.match('/offline.html'));
+      })
+    );
+    return;
+  }
+
+  // For other assets, prefer cache but update in background (stale-while-revalidate)
   event.respondWith(
     caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request).then((res) => {
-        if (!res || res.status !== 200 || res.type !== 'basic') return res;
-        const resClone = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, resClone));
-        return res;
-      }).catch(() => {
-        if (event.request.mode === 'navigate') return caches.match('/offline.html');
-      });
+      const networkFetch = fetch(event.request).then((networkResponse) => {
+        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') return networkResponse;
+        const responseClone = networkResponse.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+        return networkResponse;
+      }).catch(() => null);
+
+      // Return cached immediately if present, otherwise wait for network
+      return cached || networkFetch;
     })
   );
 });
