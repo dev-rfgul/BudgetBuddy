@@ -11,10 +11,10 @@ export default function BottomNavigation({ onAddExpenseClick }: BottomNavigation
   const isActive = (path: string) => location === path;
 
   return (
-    // Mobile-only bottom navigation. Hidden on medium+ screens.
-    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border md:hidden" data-testid="bottom-navigation" role="navigation" aria-label="Bottom navigation">
-      <div className="max-w-md mx-auto px-3">
-        <div className="flex items-center justify-between py-2">
+    // Bottom navigation (visible on all screen sizes). Adjusts spacing on larger screens.
+    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border" data-testid="bottom-navigation" role="navigation" aria-label="Bottom navigation">
+      <div className="max-w-5xl mx-auto px-4">
+        <div className="flex items-center justify-between md:justify-around py-2">
           <Link href="/">
             <button
               aria-current={isActive("/") ? 'page' : undefined}

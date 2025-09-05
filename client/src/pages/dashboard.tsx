@@ -26,7 +26,7 @@ export default function Dashboard() {
         <Card className="w-full max-w-md mx-4">
           <CardContent className="pt-6 text-center">
             <DollarSign className="w-12 h-12 text-primary mx-auto mb-4" />
-            <h1 className="text-xl font-semibold mb-2">Welcome to BudgetTracker</h1>
+            <h1 className="text-xl font-semibold mb-2">Welcome to Expense Tracker</h1>
             <p className="text-muted-foreground mb-6">
               Let's set up your first budget to get started tracking your expenses.
             </p>
@@ -54,7 +54,7 @@ export default function Dashboard() {
                 <DollarSign className="w-5 h-5 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="font-semibold text-lg">BudgetTracker</h1>
+                <h1 className="font-semibold text-lg">ExpenseTracker</h1>
                 <p className="text-xs text-muted-foreground" data-testid="current-month">
                   {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                 </p>

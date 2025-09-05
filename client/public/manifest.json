@@ -1,6 +1,6 @@
 {
-  "name": "BudgetTracker - Smart Expense Management",
-  "short_name": "BudgetTracker",
+  "name": "ExpenseTracker - Smart Expense Management",
+  "short_name": "ExpenseTracker",
   "description": "Track expenses, manage budgets, and gain insights into your spending with offline capabilities",
   "start_url": "/",
   "display": "standalone",
