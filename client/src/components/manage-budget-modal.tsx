@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useUpdateBudget } from "@/hooks/use-budget";
 import { useBudgetSummary } from "@/hooks/use-budget";
 import { localStorageService } from "@/lib/localStorage";
 import { queryClient } from "@/lib/queryClient";
@@ -37,6 +38,11 @@ export default function ManageBudgetModal({ open, onOpenChange, budgetId }: Mana
   const [newCategoryIcon, setNewCategoryIcon] = useState("");
   const [newCategoryColor, setNewCategoryColor] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [extraIncome, setExtraIncome] = useState("");
+  const [extraIncomeNote, setExtraIncomeNote] = useState("");
+  const [showAddIncome, setShowAddIncome] = useState(false);
+  const [showCreateCategory, setShowCreateCategory] = useState(false);
+  const updateBudget = useUpdateBudget();
 
   const iconOptions = [
     { value: "shopping-cart", label: "Shopping Cart", icon: ShoppingCart },
@@ -102,6 +108,31 @@ export default function ManageBudgetModal({ open, onOpenChange, budgetId }: Mana
     } catch (err) {
       setIsCreating(false);
       toast({ title: "Error", description: "Failed to create category", variant: "destructive" });
+    }
+  };
+
+  const handleAddExtraIncome = async () => {
+    if (!budgetId) return;
+    const amount = parseFloat(extraIncome || "0");
+    if (isNaN(amount) || amount <= 0) {
+      toast({ title: "Error", description: "Enter a valid amount", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const current = summary?.monthlyBudget ?? 0;
+      const newTotal = current + amount;
+      await updateBudget.mutateAsync({ id: budgetId, data: { monthlyIncome: String(newTotal) } });
+  // record income entry with optional note
+  await localStorageService.createIncomeRecord({ budgetId, amount: String(amount), note: extraIncomeNote });
+      // invalidate so summary and UI update
+      queryClient.invalidateQueries({ queryKey: ["budget", budgetId, "summary"] });
+      queryClient.invalidateQueries({ queryKey: ["budget", budgetId] });
+      toast({ title: "Success", description: `Added $${amount.toLocaleString()} to monthly budget` });
+      setExtraIncome("");
+  setExtraIncomeNote("");
+    } catch (err) {
+      toast({ title: "Error", description: "Failed to update budget", variant: "destructive" });
     }
   };
 
@@ -186,8 +217,32 @@ export default function ManageBudgetModal({ open, onOpenChange, budgetId }: Mana
                 ${Math.max(0, (summary?.monthlyBudget ?? 0) - Object.values(localAlloc).reduce((sum, v) => sum + Number(v.allocatedAmount || 0), 0)).toLocaleString()}
               </div>
             </div>
-            {/* Create new category (use same design as BudgetSetup) */}
-            <form onSubmit={handleCreateCategory} className="space-y-3 p-2 border border-border rounded">
+            {/* Add Income and Create Category controls (collapsed by default) */}
+            <div className="flex items-center space-x-2 px-2">
+              <Button variant="ghost" className="border-1 bg-green-300" onClick={() => setShowAddIncome((s) => !s)} data-testid="button-toggle-add-income ">{showAddIncome ? "Hide Add Income" : "Add Income"}</Button>
+              <Button variant="ghost" className="border-1 bg-green-300" onClick={() => setShowCreateCategory((s) => !s)} data-testid="button-toggle-create-category">{showCreateCategory ? "Hide Create Category" : "Add Category"}</Button>
+            </div>
+
+            {showAddIncome && (
+              <div className="space-y-2 p-2 border border-border rounded">
+                <div className="flex items-center space-x-2">
+                  <Input
+                    placeholder="Add extra income"
+                    value={extraIncome}
+                    onChange={(e) => setExtraIncome(e.target.value)}
+                    data-testid="input-extra-income"
+                  />
+                  <Button onClick={handleAddExtraIncome} data-testid="button-add-extra">Add</Button>
+                </div>
+                <div>
+                  <Label htmlFor="extraNote">Note (optional)</Label>
+                  <Input id="extraNote" placeholder="e.g. freelance gig" value={extraIncomeNote} onChange={(e) => setExtraIncomeNote(e.target.value)} data-testid="input-extra-note" />
+                </div>
+              </div>
+            )}
+
+            {showCreateCategory && (
+              <form onSubmit={handleCreateCategory} className="space-y-3 p-2 border border-border rounded">
               <div>
                 <Label htmlFor="categoryName">Category Name *</Label>
                 <Input
@@ -249,6 +304,7 @@ export default function ManageBudgetModal({ open, onOpenChange, budgetId }: Mana
                 <Button type="submit" className="flex-1" disabled={createCategoryMutation.isPending} data-testid="button-create-category">{createCategoryMutation.isPending ? "Creating..." : "Create Category"}</Button>
               </div>
             </form>
+            )}
             {categories.map((category) => (
               <div key={category.id} className="flex items-center justify-between">
                 <div>

@@ -4,6 +4,7 @@ class LocalStorageService {
   private readonly BUDGETS_KEY = 'budgettracker_budgets';
   private readonly CATEGORIES_KEY = 'budgettracker_categories';
   private readonly ALLOCATIONS_KEY = 'budgettracker_allocations';
+  private readonly INCOMES_KEY = 'budgettracker_incomes';
   private readonly EXPENSES_KEY = 'budgettracker_expenses';
 
   constructor() {
@@ -59,6 +60,9 @@ class LocalStorageService {
     }
     if (!localStorage.getItem(this.EXPENSES_KEY)) {
       this.setItem(this.EXPENSES_KEY, []);
+    }
+    if (!localStorage.getItem(this.INCOMES_KEY)) {
+      this.setItem(this.INCOMES_KEY, []);
     }
   }
 
@@ -204,6 +208,27 @@ class LocalStorageService {
     expenses.push(newExpense);
     this.setItem(this.EXPENSES_KEY, expenses);
     return newExpense;
+  }
+
+  // Income log operations
+  async getIncomeRecords(budgetId?: string): Promise<Array<{ id: string; budgetId: string; amount: string; note?: string; date: string; createdAt: Date }>> {
+    const incomes = this.getItem<any>(this.INCOMES_KEY);
+    return budgetId ? incomes.filter((i: any) => i.budgetId === budgetId) : incomes;
+  }
+
+  async createIncomeRecord(record: { budgetId: string; amount: string; note?: string; date?: string }): Promise<any> {
+    const incomes = this.getItem<any>(this.INCOMES_KEY);
+    const newRecord = {
+      id: crypto.randomUUID(),
+      budgetId: record.budgetId,
+      amount: record.amount,
+      note: record.note || "",
+      date: record.date ? record.date : new Date().toISOString(),
+      createdAt: new Date(),
+    };
+    incomes.push(newRecord);
+    this.setItem(this.INCOMES_KEY, incomes);
+    return newRecord;
   }
 
   async deleteExpense(id: string): Promise<void> {
