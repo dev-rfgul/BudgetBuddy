@@ -3,9 +3,10 @@ import { BarChart3, Plus, Settings, Clipboard } from "lucide-react";
 
 interface BottomNavigationProps {
   onAddExpenseClick: () => void;
+  onManageBudgetClick?: () => void;
 }
 
-export default function BottomNavigation({ onAddExpenseClick }: BottomNavigationProps) {
+export default function BottomNavigation({ onAddExpenseClick, onManageBudgetClick }: BottomNavigationProps) {
   const [location] = useLocation();
 
   const isActive = (path: string) => location === path;
@@ -59,6 +60,7 @@ export default function BottomNavigation({ onAddExpenseClick }: BottomNavigation
           </Link>
           
           <button 
+            onClick={() => onManageBudgetClick?.()}
             className="flex flex-col items-center space-y-0.5 py-2 px-3 text-muted-foreground hover:text-foreground transition-colors touch-manipulation"
             data-testid="nav-budget"
             aria-label="Budget"

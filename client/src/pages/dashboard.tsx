@@ -7,12 +7,14 @@ import BudgetOverview from "@/components/budget-overview";
 import CategoryTile from "@/components/category-tile";
 import AddExpenseModal from "@/components/add-expense-modal";
 import BottomNavigation from "@/components/bottom-navigation";
+import ManageBudgetModal from "@/components/manage-budget-modal";
 import { useCurrentBudget, useBudgetSummary } from "@/hooks/use-budget";
 import { useCategoriesWithAllocations, useExpenses } from "@/hooks/use-expenses";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Dashboard() {
   const [showAddExpense, setShowAddExpense] = useState(false);
+  const [showManageBudget, setShowManageBudget] = useState(false);
   
   const { data: budget, isLoading: budgetLoading } = useCurrentBudget();
   const { data: summary, isLoading: summaryLoading } = useBudgetSummary(budget?.id);
@@ -209,7 +211,12 @@ export default function Dashboard() {
       )}
 
       {/* Bottom Navigation */}
-      <BottomNavigation onAddExpenseClick={() => setShowAddExpense(true)} />
+      <BottomNavigation onAddExpenseClick={() => setShowAddExpense(true)} onManageBudgetClick={() => setShowManageBudget(true)} />
+
+      {/* Manage Budget Modal */}
+      {budget && (
+        <ManageBudgetModal open={showManageBudget} onOpenChange={setShowManageBudget} budgetId={budget.id} />
+      )}
     </div>
   );
 }
