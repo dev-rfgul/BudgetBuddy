@@ -85,7 +85,7 @@ export default function AddExpenseModal({ open, onOpenChange, budgetId }: AddExp
           <div>
             <Label htmlFor="amount">Amount *</Label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">PKR</span>
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">{"PKR\u00A0"}</span>
               <Input
                 id="amount"
                 type="number"
@@ -93,7 +93,7 @@ export default function AddExpenseModal({ open, onOpenChange, budgetId }: AddExp
                 placeholder="0.00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="pl-8"
+                className="pl-12"
                 data-testid="input-amount"
                 required
               />
