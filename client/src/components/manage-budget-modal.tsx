@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useBudgetSummary } from "@/hooks/use-budget";
 import { localStorageService } from "@/lib/localStorage";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +20,7 @@ interface ManageBudgetModalProps {
 
 export default function ManageBudgetModal({ open, onOpenChange, budgetId }: ManageBudgetModalProps) {
   const { toast } = useToast();
+  const { data: summary } = useBudgetSummary(budgetId);
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ["categories"],
     queryFn: async () => await localStorageService.getCategories(),
@@ -109,6 +111,13 @@ export default function ManageBudgetModal({ open, onOpenChange, budgetId }: Mana
 
   const handleSave = async () => {
     if (!budgetId) return;
+    // client-side validation: prevent oversubscription
+    const totalAllocated = Object.values(localAlloc).reduce((sum, v) => sum + Number(v.allocatedAmount || 0), 0);
+    const monthlyBudget = summary?.monthlyBudget ?? Infinity;
+    if (totalAllocated > monthlyBudget) {
+      toast({ title: "Error", description: "Total allocations exceed monthly budget", variant: "destructive" });
+      return;
+    }
     try {
       for (const categoryId of Object.keys(localAlloc)) {
         const amount = localAlloc[categoryId].allocatedAmount || "0";
@@ -146,7 +155,7 @@ export default function ManageBudgetModal({ open, onOpenChange, budgetId }: Mana
   queryClient.invalidateQueries({ queryKey: ["budget", budgetId, "categories-with-allocations"] });
   queryClient.invalidateQueries({ queryKey: ["budget", budgetId, "expenses"] });
 
-      toast({ title: "Success", description: "Allocations updated" });
+  toast({ title: "Success", description: "Allocations updated" });
       onOpenChange(false);
     } catch (error) {
       toast({ title: "Error", description: "Failed to update allocations", variant: "destructive" });
@@ -164,6 +173,19 @@ export default function ManageBudgetModal({ open, onOpenChange, budgetId }: Mana
           <p className="text-sm text-muted-foreground">Adjust allocations per category. Total allocations should not exceed your monthly income.</p>
 
           <div className="space-y-3">
+            {/* Allocated / Remaining summary */}
+            <div className="flex items-center justify-between px-2">
+              <div className="text-sm text-muted-foreground">Allocated</div>
+              <div className="font-medium">
+                ${Object.values(localAlloc).reduce((sum, v) => sum + Number(v.allocatedAmount || 0), 0).toLocaleString()}
+              </div>
+            </div>
+            <div className="flex items-center justify-between px-2">
+              <div className="text-sm text-muted-foreground">Remaining</div>
+              <div className={`font-medium ${((summary?.monthlyBudget ?? Infinity) - Object.values(localAlloc).reduce((sum, v) => sum + Number(v.allocatedAmount || 0), 0)) >= 0 ? 'text-success' : 'text-destructive'}`}>
+                ${Math.max(0, (summary?.monthlyBudget ?? 0) - Object.values(localAlloc).reduce((sum, v) => sum + Number(v.allocatedAmount || 0), 0)).toLocaleString()}
+              </div>
+            </div>
             {/* Create new category (use same design as BudgetSetup) */}
             <form onSubmit={handleCreateCategory} className="space-y-3 p-2 border border-border rounded">
               <div>
@@ -251,8 +273,23 @@ export default function ManageBudgetModal({ open, onOpenChange, budgetId }: Mana
 
           <div className="flex space-x-3 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1">Cancel</Button>
-            <Button type="button" className="flex-1" onClick={handleSave}>Save Allocations</Button>
+            {(() => {
+              const totalAllocated = Object.values(localAlloc).reduce((sum, v) => sum + Number(v.allocatedAmount || 0), 0);
+              const monthlyBudget = summary?.monthlyBudget ?? Infinity;
+              const overBudget = totalAllocated > monthlyBudget;
+              return (
+                <Button type="button" className="flex-1" onClick={handleSave} disabled={overBudget} aria-describedby={overBudget ? "over-budget-note" : undefined}>
+                  Save Allocations
+                </Button>
+              );
+            })()}
           </div>
+          {(() => {
+            const totalAllocated = Object.values(localAlloc).reduce((sum, v) => sum + Number(v.allocatedAmount || 0), 0);
+            const monthlyBudget = summary?.monthlyBudget ?? Infinity;
+            const overBudget = totalAllocated > monthlyBudget;
+            return overBudget ? <div id="over-budget-note" className="text-sm text-destructive">Total allocations exceed monthly budget. Reduce allocations before saving.</div> : null;
+          })()}
         </div>
       </DialogContent>
     </Dialog>
