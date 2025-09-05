@@ -55,7 +55,7 @@ export default function CategoryTile({ category }: CategoryTileProps) {
             </p>
             <p className="text-sm text-muted-foreground">
               of <span data-testid={`category-allocated-${category.id}`}>
-                ${category.allocated.toLocaleString()}
+                PKR {category.allocated.toLocaleString()}
               </span>
             </p>
           </div>
@@ -82,8 +82,8 @@ export default function CategoryTile({ category }: CategoryTileProps) {
             data-testid={`category-remaining-${category.id}`}
           >
             {isOverspent 
-              ? `$${Math.abs(category.remaining).toLocaleString()} over`
-              : `$${category.remaining.toLocaleString()} left`
+              ? `PKR${Math.abs(category.remaining).toLocaleString()} over`
+              : `PKR${category.remaining.toLocaleString()} left`
             }
           </span>
         </div>

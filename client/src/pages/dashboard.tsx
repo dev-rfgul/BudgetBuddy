@@ -168,7 +168,7 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <p className="font-semibold" data-testid={`transaction-amount-${expense.id}`}>
-                      -${Number(expense.amount).toLocaleString()}
+                      -PKR {Number(expense.amount).toLocaleString()}
                     </p>
                   </div>
                 </CardContent>

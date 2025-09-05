@@ -101,7 +101,7 @@ export default function Analytics() {
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 32% 91%)" />
                   <XAxis dataKey="day" />
                   <YAxis />
-                  <Tooltip formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Amount']} />
+                  <Tooltip formatter={(value) => [`PKR ${Number(value).toFixed(2)}`, 'Amount']} />
                   <Line 
                     type="monotone" 
                     dataKey="amount" 
@@ -140,7 +140,7 @@ export default function Analytics() {
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Spent']} />
+                  <Tooltip formatter={(value) => [`PKR ${Number(value).toFixed(2)}`, 'Spent']} />
                 </PieChart>
               </ResponsiveContainer>
             )}
@@ -162,7 +162,7 @@ export default function Analytics() {
                   <div>
                     <p className="font-medium text-sm">Highest spending day</p>
                     <p className="text-xs text-muted-foreground">
-                      {highestSpendingDay?.day} - ${highestSpendingDay?.amount.toFixed(2)}
+                      {highestSpendingDay?.day} - PKR {highestSpendingDay?.amount.toFixed(2)}
                     </p>
                   </div>
                 </div>
@@ -176,7 +176,7 @@ export default function Analytics() {
                   <div>
                     <p className="font-medium text-sm">Average daily spending</p>
                     <p className="text-xs text-muted-foreground">
-                      ${averageDaily.toFixed(2)} per day
+                      PKR {averageDaily.toFixed(2)} per day
                     </p>
                   </div>
                 </div>
@@ -241,10 +241,10 @@ export default function Analytics() {
                       </div>
                       <div className="text-right ml-4">
                         <p className="text-sm font-medium">
-                          ${category.spent.toLocaleString()}
+                          PKR {category.spent.toLocaleString()}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          of ${category.allocated.toLocaleString()}
+                          of PKR {category.allocated.toLocaleString()}
                         </p>
                       </div>
                     </div>

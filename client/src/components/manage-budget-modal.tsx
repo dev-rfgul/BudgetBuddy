@@ -143,7 +143,7 @@ export default function ManageBudgetModal({ open, onOpenChange, budgetId }: Mana
       queryClient.invalidateQueries({ queryKey: ["budget", budgetId] });
   // refresh all queries to ensure any current-month budget cache keys are updated
   queryClient.invalidateQueries();
-      toast({ title: "Success", description: `Added $${amount.toLocaleString()} to monthly budget` });
+  toast({ title: "Success", description: `Added PKR ${amount.toLocaleString()} to monthly budget` });
       setExtraIncome("");
   setExtraIncomeNote("");
     } catch (err) {
@@ -223,13 +223,13 @@ export default function ManageBudgetModal({ open, onOpenChange, budgetId }: Mana
             <div className="flex items-center justify-between px-2">
               <div className="text-sm text-muted-foreground">Allocated</div>
               <div className="font-medium">
-                ${Object.values(localAlloc).reduce((sum, v) => sum + Number(v.allocatedAmount || 0), 0).toLocaleString()}
+                PKR {Object.values(localAlloc).reduce((sum, v) => sum + Number(v.allocatedAmount || 0), 0).toLocaleString()}
               </div>
             </div>
             <div className="flex items-center justify-between px-2">
               <div className="text-sm text-muted-foreground">Remaining</div>
               <div className={`font-medium ${((summary?.monthlyBudget ?? Infinity) - Object.values(localAlloc).reduce((sum, v) => sum + Number(v.allocatedAmount || 0), 0)) >= 0 ? 'text-success' : 'text-destructive'}`}>
-                ${Math.max(0, (summary?.monthlyBudget ?? 0) - Object.values(localAlloc).reduce((sum, v) => sum + Number(v.allocatedAmount || 0), 0)).toLocaleString()}
+                PKR {Math.max(0, (summary?.monthlyBudget ?? 0) - Object.values(localAlloc).reduce((sum, v) => sum + Number(v.allocatedAmount || 0), 0)).toLocaleString()}
               </div>
             </div>
             {/* Add Income and Create Category controls (collapsed by default) */}

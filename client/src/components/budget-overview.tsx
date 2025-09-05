@@ -51,21 +51,21 @@ export default function BudgetOverview({ summary, isLoading }: BudgetOverviewPro
         <div className="text-center mb-6">
           <p className="text-sm text-muted-foreground mb-2">Monthly Budget</p>
           <p className="text-3xl font-bold text-foreground" data-testid="monthly-budget">
-            ${summary.monthlyBudget.toLocaleString()}
+            PKR {summary.monthlyBudget.toLocaleString()}
           </p>
           <div className="flex justify-center items-center mt-2 space-x-4 text-sm">
             <div className="flex items-center">
               <div className="w-3 h-3 bg-primary rounded-full mr-2"></div>
               <span className="text-muted-foreground">Allocated: </span>
               <span className="font-medium ml-1" data-testid="total-allocated">
-                ${summary.totalAllocated.toLocaleString()}
+                PKR {summary.totalAllocated.toLocaleString()}
               </span>
             </div>
             <div className="flex items-center">
               <div className="w-3 h-3 bg-muted rounded-full mr-2"></div>
               <span className="text-muted-foreground">Remaining: </span>
               <span className="font-medium ml-1 text-primary" data-testid="remaining-budget">
-                ${summary.remainingBudget.toLocaleString()}
+                PKR {summary.remainingBudget.toLocaleString()}
               </span>
             </div>
           </div>
@@ -85,7 +85,7 @@ export default function BudgetOverview({ summary, isLoading }: BudgetOverviewPro
           <div className="text-center">
             <p className="text-sm text-muted-foreground">Spent</p>
             <p className="font-semibold text-foreground" data-testid="total-spent">
-              ${summary.totalSpent.toLocaleString()}
+              PKR {summary.totalSpent.toLocaleString()}
             </p>
           </div>
           <div className="text-center">

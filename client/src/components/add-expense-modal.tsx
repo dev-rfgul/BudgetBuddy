@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+// Currency symbol replaced inline with 'PKR'
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCreateExpense } from "@/hooks/use-expenses";
@@ -84,7 +85,7 @@ export default function AddExpenseModal({ open, onOpenChange, budgetId }: AddExp
           <div>
             <Label htmlFor="amount">Amount *</Label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">PKR</span>
               <Input
                 id="amount"
                 type="number"
