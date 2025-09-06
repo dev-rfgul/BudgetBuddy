@@ -231,6 +231,26 @@ class LocalStorageService {
     return newRecord;
   }
 
+  // Get all budgets
+  async getBudgets(): Promise<Budget[]> {
+    return this.getItem<Budget>(this.BUDGETS_KEY);
+  }
+
+  // Copy allocations from one budget to another (used for month rollover)
+  async copyAllocations(fromBudgetId: string, toBudgetId: string): Promise<void> {
+    const allocations = this.getItem<BudgetAllocation>(this.ALLOCATIONS_KEY);
+    const from = allocations.filter(a => a.budgetId === fromBudgetId);
+    const copies = from.map(a => ({
+      id: crypto.randomUUID(),
+      budgetId: toBudgetId,
+      categoryId: a.categoryId,
+      allocatedAmount: a.allocatedAmount,
+      createdAt: new Date(),
+    }));
+    const merged = [...allocations, ...copies];
+    this.setItem(this.ALLOCATIONS_KEY, merged);
+  }
+
   async deleteExpense(id: string): Promise<void> {
     const expenses = this.getItem<Expense>(this.EXPENSES_KEY);
     const filteredExpenses = expenses.filter(e => e.id !== id);
