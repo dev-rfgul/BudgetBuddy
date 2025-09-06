@@ -191,15 +191,20 @@ export default function BudgetSetup() {
               <div>
                 <Label htmlFor="monthlyIncome">Monthly Income *</Label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">PKR</span>
+                  <span
+                    className="absolute left-3 inset-y-0 flex items-center text-sm text-muted-foreground pointer-events-none"
+                    aria-hidden="true"
+                  >
+                    PKR
+                  </span>
                   <Input
                     id="monthlyIncome"
                     type="number"
-                    step="0.01"
+                    step="1"
                     placeholder="5000.00"
                     value={monthlyIncome}
                     onChange={(e) => setMonthlyIncome(e.target.value)}
-                    className="pl-8"
+                    className="pl-14"
                     data-testid="input-monthly-income"
                     required
                   />
@@ -387,14 +392,19 @@ export default function BudgetSetup() {
                         </div>
                         <div className="flex items-center space-x-2">
                           <div className="relative">
-                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground text-sm">PKR</span>
+                            <span
+                              className="absolute left-3 inset-y-0 flex items-center text-sm text-muted-foreground pointer-events-none"
+                              aria-hidden="true"
+                            >
+                              PKR
+                            </span>
                             <Input
                               type="number"
                               step="0.01"
                               placeholder="0.00"
                               value={allocations[category.id] || ""}
                               onChange={(e) => setAllocations({ ...allocations, [category.id]: e.target.value })}
-                              className="w-32 pl-7"
+                              className="w-32 pl-12"
                               data-testid={`input-allocation-${category.id}`}
                             />
                           </div>
