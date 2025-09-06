@@ -216,7 +216,7 @@ export default function ManageBudgetModal({ open, onOpenChange, budgetId }: Mana
         </DialogHeader>
 
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">Adjust allocations per category. Total allocations should not exceed your monthly income.</p>
+          <p className="text-sm text-muted-foreground">Adjust allocations per category.</p>
 
           <div className="space-y-3">
             {/* Allocated / Remaining summary */}
@@ -234,8 +234,25 @@ export default function ManageBudgetModal({ open, onOpenChange, budgetId }: Mana
             </div>
             {/* Add Income and Create Category controls (collapsed by default) */}
             <div className="flex items-center space-x-2 px-2">
-              <Button variant="ghost" className="border-1 bg-green-300" onClick={() => setShowAddIncome((s) => !s)} data-testid="button-toggle-add-income ">{showAddIncome ? "Hide Add Income" : "Add Income"}</Button>
-              <Button variant="ghost" className="border-1 bg-green-300" onClick={() => setShowCreateCategory((s) => !s)} data-testid="button-toggle-create-category">{showCreateCategory ? "Hide Create Category" : "Add Category"}</Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-none"
+                onClick={() => setShowAddIncome((s) => !s)}
+                data-testid="button-toggle-add-income"
+              >
+                {showAddIncome ? "Hide Add Income" : "Add Income"}
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-none"
+                onClick={() => setShowCreateCategory((s) => !s)}
+                data-testid="button-toggle-create-category"
+              >
+                {showCreateCategory ? "Hide Create Category" : "Add Category"}
+              </Button>
             </div>
 
             {showAddIncome && (
