@@ -100,11 +100,14 @@ export default function Dashboard() {
           <Card>
             <CardContent className="pt-6 text-center">
               <p className="text-muted-foreground">No budget categories set up yet.</p>
-              <Link href="/budget-setup">
-                <Button variant="outline" className="mt-4">
-                  Set Up Categories
-                </Button>
-              </Link>
+              <Button
+                variant="outline"
+                className="mt-4"
+                onClick={() => setShowManageBudget(true)}
+                data-testid="button-setup-categories"
+              >
+                Set Up Categories
+              </Button>
             </CardContent>
           </Card>
         ) : (
