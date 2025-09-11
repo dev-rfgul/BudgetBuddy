@@ -81,19 +81,28 @@ export default function BudgetOverview({ summary, isLoading }: BudgetOverviewPro
         </div>
         
         {/* Quick Stats */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-4 gap-4">
           <div className="text-center">
             <p className="text-sm text-muted-foreground">Spent</p>
             <p className="font-semibold text-foreground" data-testid="total-spent">
               PKR {summary.totalSpent.toLocaleString()}
             </p>
           </div>
+
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">Available</p>
+            <p className="font-semibold text-foreground" data-testid="available-amount">
+              PKR {(summary.monthlyBudget - summary.totalSpent).toLocaleString()}
+            </p>
+          </div>
+
           <div className="text-center">
             <p className="text-sm text-muted-foreground">Categories</p>
             <p className="font-semibold text-foreground" data-testid="category-count">
               {summary.categoryCount}
             </p>
           </div>
+
           <div className="text-center">
             <p className="text-sm text-muted-foreground">Days Left</p>
             <p className="font-semibold text-foreground" data-testid="days-left">

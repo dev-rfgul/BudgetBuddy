@@ -45,7 +45,7 @@ export default function Dashboard() {
     );
   }
 
-  const recentExpenses = expenses.slice(0, 3);
+  const recentExpenses = expenses.slice(-3).reverse();
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -87,7 +87,7 @@ export default function Dashboard() {
       <section className="px-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Budget Categories</h2>
-          <Button variant="ghost" size="sm" className="text-accent hover:text-accent/80">
+          <Button onClick={() => setShowManageBudget(true)} variant="ghost" size="sm" className="text-accent hover:text-white">
             Manage
           </Button>
         </div>
@@ -125,7 +125,8 @@ export default function Dashboard() {
       <section className="p-4 mt-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Recent Transactions</h2>
-          <Button variant="ghost" size="sm" className="text-accent hover:text-accent/80">
+
+          <Button onClick={() => setShowTransactions(true)} variant="ghost" size="sm" className="text-accent hover:text-white">
             View All
           </Button>
         </div>
@@ -161,9 +162,12 @@ export default function Dashboard() {
                         <DollarSign className="w-4 h-4 text-primary" />
                       </div>
                       <div>
-                        <p className="font-medium" data-testid={`transaction-description-${expense.id}`}>
-                          {expense.description}
+                        <p className="font-medium" data-testid={`transaction-category-${expense.id}`}>
+                          {categories.find((c) => c.id === expense.categoryId)?.name ?? 'Uncategorized'}
                         </p>
+                        {expense.description ? (
+                          <p className="text-sm text-muted-foreground">{expense.description}</p>
+                        ) : null}
                         <p className="text-sm text-muted-foreground">
                           {new Date(expense.date).toLocaleDateString('en-US', { 
                             month: 'short', 
@@ -188,7 +192,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Spending Analytics</h2>
           <Link href="/analytics">
-            <Button variant="ghost" size="sm" className="text-accent hover:text-accent/80">
+            <Button variant="ghost" size="sm" className="text-accent hover:text-white">
               View Details
             </Button>
           </Link>

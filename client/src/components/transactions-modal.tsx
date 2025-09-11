@@ -57,9 +57,11 @@ export default function TransactionsModal({ open, onOpenChange, budgetId }: Tran
               {currentMonthExpenses.map((tx) => (
                 <div key={tx.id} className="flex items-center justify-between border rounded p-3">
                   <div>
-                    <div className="font-medium">{tx.description || findCategoryName(tx.categoryId)}</div>
+                    <div className="font-medium">{findCategoryName(tx.categoryId)}</div>
+                    {tx.description ? (
+                      <div className="text-sm text-muted-foreground">{tx.description}</div>
+                    ) : null}
                     <div className="text-xs text-muted-foreground">{new Date(tx.date).toLocaleString()}</div>
-                    <div className="text-xs text-muted-foreground">{findCategoryName(tx.categoryId)}</div>
                   </div>
                   <div className="flex items-center space-x-3">
                     <div className="font-semibold">PKR {Number(tx.amount).toLocaleString()}</div>
