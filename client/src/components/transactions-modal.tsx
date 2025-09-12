@@ -28,17 +28,20 @@ export default function TransactionsModal({ open, onOpenChange, budgetId }: Tran
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth();
-    return expenses.filter((e) => {
-      const d = new Date(e.date);
-      return d.getFullYear() === year && d.getMonth() === month;
-    }).sort((a, b) => +new Date(b.date) - +new Date(a.date));
+    return expenses
+      .filter((e) => {
+        const d = new Date(e.date);
+        return d.getFullYear() === year && d.getMonth() === month;
+      })
+      // sort by timestamp descending so newest transactions appear first
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [expenses]);
 
   const findCategoryName = (id?: string) => categories.find((c) => c.id === id)?.name ?? "Uncategorized";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+    <DialogContent className="w-full max-w-2xl mx-2 sm:mx-auto">
         <DialogHeader>
           <DialogTitle>Transactions — Current Month</DialogTitle>
         </DialogHeader>
@@ -55,26 +58,37 @@ export default function TransactionsModal({ open, onOpenChange, budgetId }: Tran
           ) : (
             <div className="space-y-2">
               {currentMonthExpenses.map((tx) => (
-                <div key={tx.id} className="flex items-center justify-between border rounded p-3">
-                  <div>
-                    <div className="font-medium">{findCategoryName(tx.categoryId)}</div>
-                    {tx.description ? (
-                      <div className="text-sm text-muted-foreground">{tx.description}</div>
-                    ) : null}
-                    <div className="text-xs text-muted-foreground">{new Date(tx.date).toLocaleString()}</div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <div className="font-semibold">PKR {Number(tx.amount).toLocaleString()}</div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={async () => {
-                        if (!budgetId) return;
-                        await deleteMutation.mutateAsync({ expenseId: tx.id, budgetId });
-                      }}
-                    >
-                      Delete
-                    </Button>
+                <div key={tx.id} className="border rounded p-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <svg className="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M3 10h18M7 6h10M5 14h14M9 18h6" /></svg>
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-medium text-sm truncate">{findCategoryName(tx.categoryId)}</div>
+                          {tx.description ? (
+                            <div className="text-xs text-muted-foreground truncate max-w-[18rem] sm:max-w-none">{tx.description}</div>
+                          ) : null}
+                          <div className="text-xs text-muted-foreground">{new Date(tx.date).toLocaleString()}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 sm:mt-0 sm:ml-4 flex items-center space-x-3 justify-end">
+                      <div className="font-semibold text-sm text-right">PKR {Number(tx.amount).toLocaleString()}</div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full sm:w-auto"
+                        onClick={async () => {
+                          if (!budgetId) return;
+                          await deleteMutation.mutateAsync({ expenseId: tx.id, budgetId });
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
