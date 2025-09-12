@@ -41,12 +41,12 @@ export default function TransactionsModal({ open, onOpenChange, budgetId }: Tran
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent className="w-full max-w-2xl mx-2 sm:mx-auto">
+  <DialogContent className="w-full max-w-2xl mx-2 sm:mx-auto max-h-[80vh] sm:max-h-[70vh]">
         <DialogHeader>
           <DialogTitle>Transactions — Current Month</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 p-2">
+  <div className="space-y-4 p-2 overflow-auto max-h-[60vh] sm:max-h-[50vh]">
           {isLoading ? (
             <div className="text-muted-foreground">Loading transactions…</div>
           ) : currentMonthExpenses.length === 0 ? (
@@ -96,7 +96,7 @@ export default function TransactionsModal({ open, onOpenChange, budgetId }: Tran
           )}
         </div>
 
-        <div className="flex justify-end p-2">
+  <div className="flex justify-end p-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
         </div>
       </DialogContent>
