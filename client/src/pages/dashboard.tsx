@@ -17,6 +17,7 @@ export default function Dashboard() {
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showManageBudget, setShowManageBudget] = useState(false);
   const [showTransactions, setShowTransactions] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   
   const { data: budget, isLoading: budgetLoading } = useCurrentBudget();
   const { data: summary, isLoading: summaryLoading } = useBudgetSummary(budget?.id);
@@ -115,7 +116,14 @@ export default function Dashboard() {
         ) : (
           <div className="space-y-3" data-testid="categories-list">
             {categories.map((category) => (
-              <CategoryTile key={category.id} category={category} />
+              <CategoryTile
+                key={category.id}
+                category={category}
+                onClick={(id) => {
+                  setSelectedCategoryId(id);
+                  setShowTransactions(true);
+                }}
+              />
             ))}
           </div>
         )}
@@ -231,7 +239,15 @@ export default function Dashboard() {
         <ManageBudgetModal open={showManageBudget} onOpenChange={setShowManageBudget} budgetId={budget.id} />
       )}
       {budget && (
-        <TransactionsModal open={showTransactions} onOpenChange={setShowTransactions} budgetId={budget.id} />
+        <TransactionsModal
+          open={showTransactions}
+          onOpenChange={(open) => {
+            if (!open) setSelectedCategoryId(null);
+            setShowTransactions(open);
+          }}
+          budgetId={budget.id}
+          categoryId={selectedCategoryId}
+        />
       )}
     </div>
   );

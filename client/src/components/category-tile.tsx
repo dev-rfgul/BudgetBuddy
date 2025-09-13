@@ -4,6 +4,7 @@ import { ShoppingCart, Car, FileText, Zap, Smile } from "lucide-react";
 
 interface CategoryTileProps {
   category: CategoryWithAllocation;
+  onClick?: (categoryId: string) => void;
 }
 
 const iconMap = {
@@ -22,7 +23,7 @@ const colorMap = {
   "#9B59B6": "bg-purple-100 text-purple-600",
 };
 
-export default function CategoryTile({ category }: CategoryTileProps) {
+export default function CategoryTile({ category, onClick }: CategoryTileProps) {
   const IconComponent = iconMap[category.icon as keyof typeof iconMap] || Smile;
   const iconClasses = colorMap[category.color as keyof typeof colorMap] || "bg-gray-100 text-gray-600";
   
@@ -30,7 +31,13 @@ export default function CategoryTile({ category }: CategoryTileProps) {
   const isOverspent = category.spent > category.allocated;
   
   return (
-    <Card className="shadow-sm border border-border" data-testid={`category-tile-${category.id}`}>
+    <Card
+      className={`shadow-sm border border-border ${onClick ? 'cursor-pointer hover:shadow' : ''}`}
+      data-testid={`category-tile-${category.id}`}
+      onClick={() => onClick?.(category.id)}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+    >
       <CardContent className="p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-3">

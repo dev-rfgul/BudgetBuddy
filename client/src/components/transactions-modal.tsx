@@ -11,9 +11,10 @@ interface TransactionsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   budgetId?: string;
+  categoryId?: string | null;
 }
 
-export default function TransactionsModal({ open, onOpenChange, budgetId }: TransactionsModalProps) {
+export default function TransactionsModal({ open, onOpenChange, budgetId, categoryId }: TransactionsModalProps) {
   const { data: expenses = [], isLoading } = useExpenses(budgetId);
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ["categories"],
@@ -39,6 +40,12 @@ export default function TransactionsModal({ open, onOpenChange, budgetId }: Tran
 
   const findCategoryName = (id?: string) => categories.find((c) => c.id === id)?.name ?? "Uncategorized";
 
+  // if `categoryId` prop is passed, only show transactions for that category
+  const filteredExpenses = useMemo(() => {
+    if (!categoryId) return currentMonthExpenses;
+    return currentMonthExpenses.filter((e) => (e.categoryId ?? "__uncat") === categoryId);
+  }, [currentMonthExpenses, categoryId]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
   <DialogContent className="w-full max-w-2xl mx-2 sm:mx-auto max-h-[80vh] sm:max-h-[70vh]">
@@ -49,7 +56,7 @@ export default function TransactionsModal({ open, onOpenChange, budgetId }: Tran
   <div className="space-y-4 p-2 overflow-auto max-h-[60vh] sm:max-h-[50vh]">
           {isLoading ? (
             <div className="text-muted-foreground">Loading transactions…</div>
-          ) : currentMonthExpenses.length === 0 ? (
+          ) : filteredExpenses.length === 0 ? (
             <Card>
               <CardContent className="text-center py-8">
                 <div className="text-muted-foreground">No transactions for this month.</div>
@@ -57,7 +64,11 @@ export default function TransactionsModal({ open, onOpenChange, budgetId }: Tran
             </Card>
           ) : (
             <div className="space-y-2">
-              {currentMonthExpenses.map((tx) => (
+              {categoryId ? (
+                <div className="px-2 mb-1 text-sm text-muted-foreground">Showing transactions for <span className="font-medium text-foreground">{findCategoryName(categoryId)}</span></div>
+              ) : null}
+
+              {filteredExpenses.map((tx) => (
                 <div key={tx.id} className="border rounded p-3">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <div className="flex-1 min-w-0">
