@@ -50,7 +50,11 @@ export default function TransactionsModal({ open, onOpenChange, budgetId, catego
     <Dialog open={open} onOpenChange={onOpenChange}>
   <DialogContent className="w-full max-w-2xl mx-2 sm:mx-auto max-h-[80vh] sm:max-h-[70vh]">
         <DialogHeader>
-          <DialogTitle>Transactions — Current Month</DialogTitle>
+          {/* Dynamic title: month name and optional selected category */}
+          <DialogTitle>
+            {`Transactions - ${new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}`}
+            {categoryId ? ` / ${findCategoryName(categoryId)}` : ''}
+          </DialogTitle>
         </DialogHeader>
 
   <div className="space-y-4 p-2 overflow-auto max-h-[60vh] sm:max-h-[50vh]">
