@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCreateExpense } from "@/hooks/use-expenses";
 import { useQuery } from "@tanstack/react-query";
+import { useCategoriesWithAllocations } from "@/hooks/use-expenses";
 import { useToast } from "@/hooks/use-toast";
 import { localStorageService } from "@/lib/localStorage";
 import { type Category } from "@shared/schema";
@@ -26,10 +27,11 @@ export default function AddExpenseModal({ open, onOpenChange, budgetId }: AddExp
   const { toast } = useToast();
   const createExpense = useCreateExpense();
   
-  const { data: categories = [] } = useQuery<Category[]>({
-    queryKey: ["categories"],
-    queryFn: async () => await localStorageService.getCategories(),
-  });
+  // Prefer categories that belong to this budget and have allocations
+  const { data: categoriesWithAllocations = [] } = useCategoriesWithAllocations(budgetId);
+
+  // Only show categories that have an allocated amount > 0
+  const availableCategories = categoriesWithAllocations.filter((c) => (c.allocated ?? 0) > 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,7 +109,7 @@ export default function AddExpenseModal({ open, onOpenChange, budgetId }: AddExp
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent>
-                {categories.map((category) => (
+                {availableCategories.map((category) => (
                   <SelectItem key={category.id} value={category.id}>
                     {category.name}
                   </SelectItem>
