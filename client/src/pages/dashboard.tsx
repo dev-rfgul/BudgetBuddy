@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, DollarSign } from "lucide-react";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from "recharts";
 import BudgetOverview from "@/components/budget-overview";
 import CategoryTile from "@/components/category-tile";
 import AddExpenseModal from "@/components/add-expense-modal";
@@ -12,6 +13,8 @@ import TransactionsModal from "@/components/transactions-modal";
 import { useCurrentBudget, useBudgetSummary } from "@/hooks/use-budget";
 import { useCategoriesWithAllocations, useExpenses } from "@/hooks/use-expenses";
 import { Skeleton } from "@/components/ui/skeleton";
+
+const COLORS = ['#2ECC71', '#3498DB', '#E74C3C', '#F39C12', '#9B59B6', '#1ABC9C', '#E67E22', '#8E44AD'];
 
 export default function Dashboard() {
   const [showAddExpense, setShowAddExpense] = useState(false);
@@ -23,6 +26,16 @@ export default function Dashboard() {
   const { data: summary, isLoading: summaryLoading } = useBudgetSummary(budget?.id);
   const { data: categories = [], isLoading: categoriesLoading } = useCategoriesWithAllocations(budget?.id);
   const { data: expenses = [], isLoading: expensesLoading } = useExpenses(budget?.id);
+
+  // Prepare chart data
+  const chartData = categories
+    .map((category, index) => ({
+      ...category,
+      color: COLORS[index % COLORS.length]
+    }))
+    .filter(category => category.spent > 0)
+    .sort((a, b) => b.spent - a.spent)
+    .slice(0, 6); // Show top 6 categories
 
   // If no budget exists, redirect to budget setup
   if (!budgetLoading && !budget) {
@@ -195,10 +208,10 @@ export default function Dashboard() {
         )}
       </section>
 
-      {/* Analytics Preview */}
+      {/* Category Spending Chart */}
       <section className="p-4 mt-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Spending Analytics</h2>
+          <h2 className="text-lg font-semibold">Category Spending</h2>
           <Link href="/analytics">
             <Button variant="ghost" size="sm" className="text-accent hover:text-white">
               View Details
@@ -207,13 +220,51 @@ export default function Dashboard() {
         </div>
         
         <Card>
-          <CardContent className="pt-6 text-center">
-            <p className="text-muted-foreground mb-4">View detailed spending analytics and insights</p>
-            <Link href="/analytics">
-              <Button variant="outline" data-testid="button-view-analytics">
-                View Analytics
-              </Button>
-            </Link>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Top Spending Categories</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {categoriesLoading || expensesLoading ? (
+              <Skeleton className="h-64 w-full" />
+            ) : chartData.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground mb-4">No spending data yet</p>
+                <Button 
+                  onClick={() => setShowAddExpense(true)}
+                  variant="outline" 
+                  className="mt-2"
+                >
+                  Add Your First Expense
+                </Button>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart
+                  data={chartData}
+                  margin={{ top: 10, right: 10, left: 10, bottom: 40 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 32% 91%)" />
+                  <XAxis 
+                    dataKey="name" 
+                    angle={-45}
+                    textAnchor="end"
+                    height={50}
+                    interval={0}
+                    className="text-xs"
+                  />
+                  <YAxis className="text-xs" />
+                  <Tooltip 
+                    formatter={(value) => [`PKR ${Number(value).toLocaleString()}`, 'Spent']}
+                    labelFormatter={(label) => `Category: ${label}`}
+                  />
+                  <Bar dataKey="spent" radius={[2, 2, 0, 0]}>
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
       </section>
