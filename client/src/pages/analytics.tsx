@@ -264,7 +264,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Calendar, DollarSign, Target, Activity, Eye, EyeOff } from "lucide-react";
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, PieChart, Pie, Cell, AreaChart, Area } from "recharts";
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, AreaChart, Area, Cell } from "recharts";
 import { useCurrentBudget } from "@/hooks/use-budget";
 import { useCategoriesWithAllocations, useExpenses } from "@/hooks/use-expenses";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -582,7 +582,7 @@ export default function Analytics() {
           {/* Category Breakdown */}
           <Card data-testid="category-chart">
             <CardHeader>
-              <CardTitle className="text-lg">Category Distribution</CardTitle>
+              <CardTitle className="text-lg">Category Spending</CardTitle>
             </CardHeader>
             <CardContent>
               {categoriesLoading ? (
@@ -590,22 +590,31 @@ export default function Analytics() {
               ) : categoryAnalysis.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">No spending data available</p>
               ) : (
-                <ResponsiveContainer width="100%" height={250}>
-                  <PieChart>
-                    <Pie
-                      data={categoryAnalysis}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      dataKey="spent"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    >
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart
+                    data={categoryAnalysis.sort((a, b) => b.spent - a.spent)}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 32% 91%)" />
+                    <XAxis 
+                      dataKey="name" 
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
+                      interval={0}
+                      className="text-xs"
+                    />
+                    <YAxis className="text-xs" />
+                    <Tooltip 
+                      formatter={(value, name) => [`PKR ${Number(value).toLocaleString()}`, 'Spent']}
+                      labelFormatter={(label) => `Category: ${label}`}
+                    />
+                    <Bar dataKey="spent" radius={[4, 4, 0, 0]}>
                       {categoryAnalysis.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => [`PKR ${Number(value).toFixed(2)}`, 'Spent']} />
-                  </PieChart>
+                    </Bar>
+                  </BarChart>
                 </ResponsiveContainer>
               )}
             </CardContent>
