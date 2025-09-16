@@ -33,8 +33,8 @@ export default function Dashboard() {
       ...category,
       color: COLORS[index % COLORS.length]
     }))
-    .filter(category => category.spent > 0)
-    .sort((a, b) => b.spent - a.spent)
+    .filter(category => category.allocated > 0) // Show categories with allocations
+    .sort((a, b) => b.allocated - a.allocated) // Sort by allocation amount
     .slice(0, 6); // Show top 6 categories
 
   // If no budget exists, redirect to budget setup
@@ -228,13 +228,13 @@ export default function Dashboard() {
               <Skeleton className="h-64 w-full" />
             ) : chartData.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-muted-foreground mb-4">No spending data yet</p>
+                <p className="text-muted-foreground mb-4">No budget allocations yet</p>
                 <Button 
-                  onClick={() => setShowAddExpense(true)}
+                  onClick={() => setShowManageBudget(true)}
                   variant="outline" 
                   className="mt-2"
                 >
-                  Add Your First Expense
+                  Set Up Budget Categories
                 </Button>
               </div>
             ) : (
@@ -254,12 +254,29 @@ export default function Dashboard() {
                   />
                   <YAxis className="text-xs" />
                   <Tooltip 
-                    formatter={(value) => [`PKR ${Number(value).toLocaleString()}`, 'Spent']}
+                    formatter={(value, name) => [
+                      `PKR ${Number(value).toLocaleString()}`, 
+                      name === 'allocated' ? 'Allocated' : 'Spent'
+                    ]}
                     labelFormatter={(label) => `Category: ${label}`}
                   />
-                  <Bar dataKey="spent" radius={[2, 2, 0, 0]}>
+                  {/* Allocated budget bars (hollow/light) */}
+                  <Bar 
+                    dataKey="allocated" 
+                    radius={[2, 2, 0, 0]}
+                    fillOpacity={0.3}
+                  >
                     {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                      <Cell key={`allocated-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
+                  {/* Spent budget bars (solid) */}
+                  <Bar 
+                    dataKey="spent" 
+                    radius={[2, 2, 0, 0]}
+                  >
+                    {chartData.map((entry, index) => (
+                      <Cell key={`spent-${index}`} fill={entry.color} />
                     ))}
                   </Bar>
                 </BarChart>

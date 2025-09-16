@@ -364,7 +364,7 @@ export default function Analytics() {
       color: COLORS[index % COLORS.length],
       efficiency: category.allocated > 0 ? Math.min(100, (category.allocated - spent) / category.allocated * 100) : 0
     };
-  }).filter(cat => cat.spent > 0);
+  }).filter(cat => cat.allocated > 0); // Show categories with allocations
 
   // Debug logging
   console.log('Categories:', categories);
@@ -588,11 +588,11 @@ export default function Analytics() {
               {categoriesLoading ? (
                 <Skeleton className="h-64 w-full" />
               ) : categoryAnalysis.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">No spending data available</p>
+                <p className="text-center text-muted-foreground py-8">No budget allocations available</p>
               ) : (
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart
-                    data={categoryAnalysis.sort((a, b) => b.spent - a.spent)}
+                    data={categoryAnalysis.sort((a, b) => b.allocated - a.allocated)}
                     margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 32% 91%)" />
@@ -606,12 +606,29 @@ export default function Analytics() {
                     />
                     <YAxis className="text-xs" />
                     <Tooltip 
-                      formatter={(value, name) => [`PKR ${Number(value).toLocaleString()}`, 'Spent']}
+                      formatter={(value, name) => [
+                        `PKR ${Number(value).toLocaleString()}`, 
+                        name === 'allocated' ? 'Allocated' : 'Spent'
+                      ]}
                       labelFormatter={(label) => `Category: ${label}`}
                     />
-                    <Bar dataKey="spent" radius={[4, 4, 0, 0]}>
+                    {/* Allocated budget bars (hollow/light) */}
+                    <Bar 
+                      dataKey="allocated" 
+                      radius={[4, 4, 0, 0]}
+                      fillOpacity={0.3}
+                    >
                       {categoryAnalysis.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
+                        <Cell key={`allocated-${index}`} fill={entry.color} />
+                      ))}
+                    </Bar>
+                    {/* Spent budget bars (solid) */}
+                    <Bar 
+                      dataKey="spent" 
+                      radius={[4, 4, 0, 0]}
+                    >
+                      {categoryAnalysis.map((entry, index) => (
+                        <Cell key={`spent-${index}`} fill={entry.color} />
                       ))}
                     </Bar>
                   </BarChart>
@@ -715,68 +732,6 @@ export default function Analytics() {
                 </p>
               </div>
             </div>
-
-            {showDetailedInsights && (
-              <div className="mt-6 space-y-4">
-                <h4 className="font-semibold text-sm">Detailed Analysis</h4>
-                
-                {/* Category Performance */}
-                <div className="space-y-3">
-                  {categoryAnalysis.map((category) => (
-                    <div key={category.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
-                      <div className="flex items-center space-x-3 flex-1">
-                        <div 
-                          className="w-4 h-4 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: category.color }}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium text-sm truncate">{category.name}</p>
-                          <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                            <span>{category.transactionCount} transactions</span>
-                            <span>•</span>
-                            <span>PKR {category.averageTransaction.toFixed(0)} avg</span>
-                            <span>•</span>
-                            <Badge 
-                              variant={category.trend > 10 ? "destructive" : category.trend < -10 ? "default" : "secondary"}
-                              className="text-xs"
-                            >
-                              {category.trend > 0 ? '+' : ''}{category.trend.toFixed(1)}%
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right ml-4 flex-shrink-0">
-                        <p className="text-sm font-medium">PKR {category.spent.toLocaleString()}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {category.budgetUtilization.toFixed(1)}% used
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Actionable Recommendations */}
-                {(overspentCategories.length > 0 || riskScore > 50) && (
-                  <div className="mt-6 p-4 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg">
-                    <div className="flex items-center space-x-2 mb-3">
-                      <AlertTriangle className="w-5 h-5 text-orange-500" />
-                      <h4 className="font-semibold text-sm">Recommendations</h4>
-                    </div>
-                    <ul className="space-y-2 text-sm">
-                      {overspentCategories.length > 0 && (
-                        <li>• Consider reducing spending in {overspentCategories[0].name} (over by PKR {(overspentCategories[0].spent - overspentCategories[0].allocated).toLocaleString()})</li>
-                      )}
-                      {riskScore > 70 && (
-                        <li>• Your spending is above recommended levels - review your largest categories</li>
-                      )}
-                      {spendingVelocity > 20 && (
-                        <li>• Spending has increased significantly - monitor daily expenses more closely</li>
-                      )}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
           </CardContent>
         </Card>
 
