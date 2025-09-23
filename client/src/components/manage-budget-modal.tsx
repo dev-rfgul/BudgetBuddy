@@ -10,7 +10,7 @@ import { useBudgetSummary } from "@/hooks/use-budget";
 import { localStorageService } from "@/lib/localStorage";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Category, BudgetAllocation } from "@shared/schema";
+import type { Category, BudgetAllocation } from "@/types";
 import { ShoppingCart, Car, FileText, Zap, Smile } from "lucide-react";
 
 interface ManageBudgetModalProps {

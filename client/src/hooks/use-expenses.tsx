@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { localStorageService } from "@/lib/localStorage";
-import { type Expense, type CategoryWithAllocation } from "@shared/schema";
+import { type Expense, type CategoryWithAllocation } from "@/types";
 
 export function useExpenses(budgetId: string | undefined) {
   return useQuery<Expense[]>({

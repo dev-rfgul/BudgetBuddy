@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { localStorageService } from "@/lib/localStorage";
 import { useExpenses, useDeleteExpense } from "@/hooks/use-expenses";
-import { type Expense, type Category } from "@shared/schema";
+import { type Expense, type Category } from "@/types";
 import { useMemo } from "react";
 import ResetTransactionsModal from "./reset-transactions-modal";
 

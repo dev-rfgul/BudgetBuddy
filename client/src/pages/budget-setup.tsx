@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { localStorageService } from "@/lib/localStorage";
-import { type Category } from "@shared/schema";
+import { type Category } from "@/types";
 // Currency symbol replaced inline with 'PKR'
 
 const iconOptions = [

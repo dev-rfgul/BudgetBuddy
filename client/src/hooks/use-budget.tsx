@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { localStorageService } from "@/lib/localStorage";
-import { type Budget, type BudgetSummary } from "@shared/schema";
+import { type Budget, type BudgetSummary } from "@/types";
 
 export function useCurrentBudget() {
   const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format

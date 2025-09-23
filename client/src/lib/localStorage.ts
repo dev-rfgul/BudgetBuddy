@@ -1,4 +1,4 @@
-import { type Budget, type Category, type BudgetAllocation, type Expense, type CategoryWithAllocation, type BudgetSummary } from "@shared/schema";
+import { type Budget, type Category, type BudgetAllocation, type Expense, type CategoryWithAllocation, type BudgetSummary } from "@/types";
 
 class LocalStorageService {
   private readonly BUDGETS_KEY = 'budgettracker_budgets';

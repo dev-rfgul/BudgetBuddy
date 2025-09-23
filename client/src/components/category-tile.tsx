@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { type CategoryWithAllocation } from "@shared/schema";
+import { type CategoryWithAllocation } from "@/types";
 import { ShoppingCart, Car, FileText, Zap, Smile } from "lucide-react";
 
 interface CategoryTileProps {

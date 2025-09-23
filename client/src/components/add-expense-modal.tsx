@@ -10,7 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useCategoriesWithAllocations } from "@/hooks/use-expenses";
 import { useToast } from "@/hooks/use-toast";
 import { localStorageService } from "@/lib/localStorage";
-import { type Category } from "@shared/schema";
+import { type Category } from "@/types";
 
 interface AddExpenseModalProps {
   open: boolean;
