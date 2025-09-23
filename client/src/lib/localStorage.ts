@@ -257,6 +257,12 @@ class LocalStorageService {
     this.setItem(this.EXPENSES_KEY, filteredExpenses);
   }
 
+  async resetBudgetExpenses(budgetId: string): Promise<void> {
+    const expenses = this.getItem<Expense>(this.EXPENSES_KEY);
+    const filteredExpenses = expenses.filter(e => e.budgetId !== budgetId);
+    this.setItem(this.EXPENSES_KEY, filteredExpenses);
+  }
+
   // Analytics operations
   async getCategoriesWithAllocations(budgetId: string): Promise<CategoryWithAllocation[]> {
     const categories = await this.getCategories();
