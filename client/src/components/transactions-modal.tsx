@@ -50,21 +50,25 @@ export default function TransactionsModal({ open, onOpenChange, budgetId, catego
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full max-w-2xl mx-2 sm:mx-auto max-h-[80vh] sm:max-h-[70vh]">
-        <DialogHeader>
+        <DialogHeader className="pr-10">
           <div className="flex items-center justify-between">
             <DialogTitle>
               {`Transactions - ${new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}`}
               {categoryId ? ` / ${findCategoryName(categoryId)}` : ''}
             </DialogTitle>
-            {/* Only show reset button when viewing all transactions (no category filter) and there are transactions */}
-            {!categoryId && filteredExpenses.length > 0 && budgetId && (
-              <ResetTransactionsModal 
-                budgetId={budgetId} 
-                transactionCount={filteredExpenses.length}
-              />
-            )}
+            {/* Place reset in a container with right margin so it doesn't collide with the close button */}
+            <div className="flex items-center gap-2 mr-6">
+              {!categoryId && filteredExpenses.length > 0 && budgetId && (
+                <ResetTransactionsModal 
+                  budgetId={budgetId} 
+                  transactionCount={filteredExpenses.length}
+                />
+              )}
+            </div>
           </div>
-        </DialogHeader>  <div className="space-y-4 p-2 overflow-auto max-h-[60vh] sm:max-h-[50vh]">
+        </DialogHeader>
+
+        <div className="space-y-4 p-2 overflow-auto max-h-[60vh] sm:max-h-[50vh]">
           {isLoading ? (
             <div className="text-muted-foreground">Loading transactions…</div>
           ) : filteredExpenses.length === 0 ? (
