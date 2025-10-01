@@ -1,6 +1,6 @@
 {
+  "outputDirectory": "dist",
   "build": {
-    "env": {},
-    "outputDirectory": "dist"
+    "env": {}
   }
 }
