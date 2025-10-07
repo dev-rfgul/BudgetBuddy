@@ -210,7 +210,7 @@ export default function ManageBudgetModal({ open, onOpenChange, budgetId }: Mana
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg slide-up" data-testid="manage-budget-modal">
+      <DialogContent className="max-w-lg slide-up overflow-y-auto max-h-[80vh]" data-testid="manage-budget-modal">
         <DialogHeader>
           <DialogTitle>Manage Budget Allocations</DialogTitle>
         </DialogHeader>
