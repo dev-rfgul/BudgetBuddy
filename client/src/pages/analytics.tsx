@@ -264,11 +264,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Calendar, DollarSign, Target, Activity, Eye, EyeOff } from "lucide-react";
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, AreaChart, Area, Cell } from "recharts";
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, AreaChart, Area, PieChart, Pie, Cell } from "recharts";
 import { useCurrentBudget } from "@/hooks/use-budget";
 import { useCategoriesWithAllocations, useExpenses } from "@/hooks/use-expenses";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const COLORS = ['#2ECC71', '#3498DB', '#E74C3C', '#F39C12', '#9B59B6', '#1ABC9C', '#E67E22', '#8E44AD'];
 
@@ -276,81 +277,152 @@ export default function Analytics() {
   const { data: budget } = useCurrentBudget();
   const { data: categories = [], isLoading: categoriesLoading } = useCategoriesWithAllocations(budget?.id);
   const { data: expenses = [], isLoading: expensesLoading } = useExpenses(budget?.id);
-  const [viewPeriod, setViewPeriod] = useState('month');
+  const [viewPeriod, setViewPeriod] = useState<'week'|'month'|'day'>('month');
   const [showDetailedInsights, setShowDetailedInsights] = useState(true);
 
+  const isMobile = useIsMobile();
+  const CHART_HEIGHT = isMobile ? 220 : 320;
+
   // Helper functions for data analysis
+  // Period semantics:
+  // - 'day'   => last 7 days (daily points)
+  // - 'week'  => last 5 weeks (weekly aggregated points)
+  // - 'month' => last 5 months (monthly aggregated points)
+  const WEEKS = 5;
+  const MONTHS = 5;
+
   const getDateRange = () => {
     const today = new Date();
-    const startDate = new Date();
-    
-    if (viewPeriod === 'week') {
-      startDate.setDate(today.getDate() - 7);
+    let startDate = new Date();
+
+    if (viewPeriod === 'day') {
+      // last 7 days
+      startDate.setDate(today.getDate() - (7 - 1));
+    } else if (viewPeriod === 'week') {
+      // last WEEKS weeks (use 5 weeks)
+      startDate.setDate(today.getDate() - (WEEKS * 7 - 1));
     } else {
-      startDate.setDate(today.getDate() - 30);
+      // last MONTHS months (start at first day of month N months ago)
+      startDate = new Date(today.getFullYear(), today.getMonth() - (MONTHS - 1), 1);
     }
-    
+
     return { startDate, endDate: today };
   };
 
   const { startDate, endDate } = getDateRange();
 
-  // Filter expenses by selected period
+  // Filter expenses by selected period to reduce work
   const filteredExpenses = expenses.filter(expense => {
     const expenseDate = new Date(expense.date);
     return expenseDate >= startDate && expenseDate <= endDate;
   });
 
-  // Generate time series data
+  // Generate time series data based on selected aggregation
   const generateTimeSeriesData = () => {
-    const days = viewPeriod === 'week' ? 7 : 30;
-    const data = [];
+    const data: { key: string; label: string; amount: number; cumulative: number }[] = [];
     let cumulativeTotal = 0;
-    
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      
-      const dayExpenses = filteredExpenses.filter(expense => {
-        const expenseDate = new Date(expense.date);
-        return expenseDate.toDateString() === date.toDateString();
-      });
-      
-      const dailyTotal = dayExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
-      cumulativeTotal += dailyTotal;
-      
-      data.push({
-        date: date.toISOString().split('T')[0],
-        day: date.toLocaleDateString('en-US', { weekday: 'short' }),
-        amount: dailyTotal,
-        cumulative: cumulativeTotal,
-        fullDate: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-      });
+
+    if (viewPeriod === 'day') {
+      // last 7 days
+      for (let i = 7 - 1; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+
+        const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        const dayEnd = new Date(dayStart);
+        dayEnd.setDate(dayStart.getDate() + 1);
+
+        const dailyTotal = filteredExpenses
+          .filter(e => {
+            const d = new Date(e.date);
+            return d >= dayStart && d < dayEnd;
+          })
+          .reduce((s, e) => s + Number(e.amount), 0);
+
+        cumulativeTotal += dailyTotal;
+
+        data.push({
+          key: date.toISOString().split('T')[0],
+          label: date.toLocaleDateString('en-US', { weekday: isMobile ? 'short' : 'short' }),
+          amount: dailyTotal,
+          cumulative: cumulativeTotal,
+        });
+      }
+    } else if (viewPeriod === 'week') {
+      // last WEEKS weeks; each point aggregates 7-day window ending on that day
+      for (let i = WEEKS - 1; i >= 0; i--) {
+        const end = new Date();
+        end.setDate(end.getDate() - i * 7);
+        const start = new Date(end);
+        start.setDate(end.getDate() - 6);
+
+        const weekTotal = filteredExpenses
+          .filter(e => {
+            const d = new Date(e.date);
+            return d >= new Date(start.getFullYear(), start.getMonth(), start.getDate()) && d <= new Date(end.getFullYear(), end.getMonth(), end.getDate(), 23, 59, 59, 999);
+          })
+          .reduce((s, e) => s + Number(e.amount), 0);
+
+        cumulativeTotal += weekTotal;
+
+        // label: use short month/day of week start for compactness
+        const label = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+        data.push({
+          key: `${start.toISOString().split('T')[0]}_wk`,
+          label: label,
+          amount: weekTotal,
+          cumulative: cumulativeTotal,
+        });
+      }
+    } else {
+      // month view: last MONTHS months
+      for (let i = MONTHS - 1; i >= 0; i--) {
+        const d = new Date();
+        d.setMonth(d.getMonth() - i);
+        const monthStart = new Date(d.getFullYear(), d.getMonth(), 1);
+        const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+
+        const monthTotal = filteredExpenses
+          .filter(e => {
+            const date = new Date(e.date);
+            return date >= monthStart && date <= monthEnd;
+          })
+          .reduce((s, e) => s + Number(e.amount), 0);
+
+        cumulativeTotal += monthTotal;
+
+        data.push({
+          key: `${monthStart.getFullYear()}-${monthStart.getMonth() + 1}`,
+          label: monthStart.toLocaleDateString('en-US', { month: 'short' }),
+          amount: monthTotal,
+          cumulative: cumulativeTotal,
+        });
+      }
     }
-    
+
     return data;
   };
 
   const timeSeriesData = generateTimeSeriesData();
 
-  // Category analysis with enhanced insights
+  // Category analysis (pie + metrics)
   const categoryAnalysis = categories.map((category, index) => {
     const categoryExpenses = filteredExpenses.filter(exp => exp.categoryId === category.id);
     const spent = categoryExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
     const transactionCount = categoryExpenses.length;
     const averageTransaction = transactionCount > 0 ? spent / transactionCount : 0;
-    const dailyAverage = spent / (viewPeriod === 'week' ? 7 : 30);
+    const dailyAverage = spent / (viewPeriod === 'week' ? 7 : (viewPeriod === 'day' ? 1 : 30));
     const budgetUtilization = category.allocated > 0 ? (spent / category.allocated) * 100 : 0;
-    
-    // Trend analysis (comparing first half vs second half of period)
-    const midPoint = Math.floor((viewPeriod === 'week' ? 7 : 30) / 2);
-    const firstHalf = categoryExpenses.filter(exp => {
-      const expDate = new Date(exp.date);
-      const daysDiff = Math.floor((new Date() - expDate) / (1000 * 60 * 60 * 24));
-      return daysDiff >= midPoint;
-    }).reduce((sum, exp) => sum + Number(exp.amount), 0);
-    
-    const secondHalf = spent - firstHalf;
+
+    // Trend analysis
+    const daysTotal = viewPeriod === 'week' ? 7 : (viewPeriod === 'day' ? 1 : 30);
+    const midPoint = Math.floor(daysTotal / 2);
+    const sorted = filteredExpenses
+      .filter(exp => exp.categoryId === category.id)
+      .sort((a, b) => +new Date(b.date) - +new Date(a.date));
+    const firstHalf = sorted.slice(midPoint).reduce((s, e) => s + Number(e.amount), 0);
+    const secondHalf = sorted.slice(0, midPoint).reduce((s, e) => s + Number(e.amount), 0);
     const trend = firstHalf > 0 ? ((secondHalf - firstHalf) / firstHalf) * 100 : 0;
 
     return {
@@ -362,61 +434,39 @@ export default function Analytics() {
       budgetUtilization,
       trend,
       color: COLORS[index % COLORS.length],
-      efficiency: category.allocated > 0 ? Math.min(100, (category.allocated - spent) / category.allocated * 100) : 0
+      efficiency: category.allocated > 0 ? Math.max(0, Math.min(100, (category.allocated - spent) / category.allocated * 100)) : 0
     };
-  }).filter(cat => cat.allocated > 0); // Show categories with allocations
+  }).filter(cat => cat.allocated > 0);
 
-  // Debug logging
-  console.log('Categories:', categories);
-  console.log('Filtered Expenses:', filteredExpenses);
-  console.log('Category Analysis:', categoryAnalysis);
-
-  // Advanced insights calculations
-  const totalSpent = filteredExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
-  const totalBudget = categories.reduce((sum, cat) => sum + cat.allocated, 0);
-  const budgetRemaining = totalBudget - totalSpent;
-  const budgetUtilization = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
-  
-  const averageDaily = totalSpent / (viewPeriod === 'week' ? 7 : 30);
-  const projectedMonthly = averageDaily * 30;
-  
-  // Spending patterns
+  // Simple weekday aggregation for a line chart
   const expensesByDay: Record<number, number> = {};
   const expensesByHour: Record<number, number> = {};
-  
   filteredExpenses.forEach(expense => {
     const date = new Date(expense.date);
-    const dayOfWeek = date.getDay();
+    const day = date.getDay();
     const hour = date.getHours();
-    
-    expensesByDay[dayOfWeek] = (expensesByDay[dayOfWeek] || 0) + Number(expense.amount);
+    expensesByDay[day] = (expensesByDay[day] || 0) + Number(expense.amount);
     expensesByHour[hour] = (expensesByHour[hour] || 0) + Number(expense.amount);
   });
 
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const spendingByWeekday = Object.entries(expensesByDay)
-    .map(([day, amount]) => ({
-      day: dayNames[parseInt(day)],
-      amount: Number(amount)
-    }))
-    .sort((a, b) => b.amount - a.amount);
+    .map(([day, amount]) => ({ day: dayNames[parseInt(day)], amount: Number(amount) }))
+    .sort((a, b) => dayNames.indexOf(a.day) - dayNames.indexOf(b.day)); // maintain weekday order
 
-  const highestSpendingDay = timeSeriesData.reduce((max, day) => 
-    day.amount > max.amount ? day : max, timeSeriesData[0] || { amount: 0 });
-  
-  const lowestSpendingDay = timeSeriesData.reduce((min, day) => 
-    day.amount < min.amount ? day : min, timeSeriesData[0] || { amount: 0 });
+  // High-level metrics
+  const totalSpent = filteredExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
+  const totalBudget = categories.reduce((sum, cat) => sum + cat.allocated, 0);
+  const budgetRemaining = totalBudget - totalSpent;
+  const budgetUtilization = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+  // compute period days for averages
+  const periodDays = viewPeriod === 'day' ? 7 : (viewPeriod === 'week' ? WEEKS * 7 : MONTHS * 30);
+  const averageDaily = totalSpent / Math.max(1, periodDays);
+  const projectedMonthly = averageDaily * 30;
 
-  // Risk assessment
-  const overspentCategories = categoryAnalysis.filter(cat => cat.spent > cat.allocated);
-  const riskScore = Math.min(100, (overspentCategories.length / categories.length) * 50 + 
-    (budgetUtilization > 100 ? 50 : budgetUtilization * 0.5));
-
-  // Spending velocity (acceleration/deceleration)
-  const recentWeekSpending = timeSeriesData.slice(-7).reduce((sum, day) => sum + day.amount, 0);
-  const previousWeekSpending = timeSeriesData.slice(-14, -7).reduce((sum, day) => sum + day.amount, 0);
-  const spendingVelocity = previousWeekSpending > 0 ? 
-    ((recentWeekSpending - previousWeekSpending) / previousWeekSpending) * 100 : 0;
+  // Visual helpers
+  const areaStroke = 'hsl(145 63% 49%)';
+  const cumulativeStroke = 'hsl(271 81% 56%)';
 
   if (!budget) {
     return (
@@ -437,7 +487,7 @@ export default function Analytics() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card border-b border-border sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <Link href="/">
@@ -445,144 +495,158 @@ export default function Analytics() {
                   <ArrowLeft className="w-5 h-5" />
                 </Button>
               </Link>
-              <h1 className="font-semibold text-lg lg:text-xl">Analytics</h1>
+              <h1 className="font-semibold text-lg">Spending Trends</h1>
             </div>
-            <div className="flex space-x-2">
-              <Button 
-                variant={viewPeriod === 'month' ? "default" : "outline"} 
+
+            <div className="flex items-center space-x-2">
+              <Button
+                variant={viewPeriod === 'day' ? "default" : "outline"}
                 size="sm"
-                onClick={() => setViewPeriod('month')}
-                className="text-xs lg:text-sm"
+                onClick={() => setViewPeriod('day')}
+                className="text-xs"
               >
-                Month
+                Day
               </Button>
-              <Button 
-                variant={viewPeriod === 'week' ? "default" : "outline"} 
+              <Button
+                variant={viewPeriod === 'week' ? "default" : "outline"}
                 size="sm"
                 onClick={() => setViewPeriod('week')}
-                className="text-xs lg:text-sm"
+                className="text-xs"
               >
                 Week
+              </Button>
+              <Button
+                variant={viewPeriod === 'month' ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewPeriod('month')}
+                className="text-xs"
+              >
+                Month
               </Button>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto p-4 space-y-6 pb-20">
-        {/* Overview Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="max-w-7xl mx-auto p-4 space-y-6 pb-32">
+        {/* Overview Cards (small sparklines) */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2">
-                <DollarSign className="w-4 h-4 text-primary" />
-                <p className="text-sm font-medium">Total Spent</p>
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Total Spent</p>
+                  <p className="text-lg font-semibold">PKR {totalSpent.toLocaleString()}</p>
+                </div>
+                <div style={{ width: 90, height: 36 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={timeSeriesData}>
+                      <Line dataKey="amount" stroke={areaStroke} strokeWidth={2} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-              <p className="text-2xl font-bold">PKR {totalSpent.toLocaleString()}</p>
-              <p className="text-xs text-muted-foreground">
-                {budgetUtilization.toFixed(1)}% of budget
-              </p>
+              <p className="text-xs text-muted-foreground mt-2">{budgetUtilization.toFixed(1)}% of allocations</p>
             </CardContent>
           </Card>
-          
+
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2">
-                <Target className="w-4 h-4 text-green-500" />
-                <p className="text-sm font-medium">Remaining</p>
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Remaining</p>
+                  <p className="text-lg font-semibold">PKR {budgetRemaining.toLocaleString()}</p>
+                </div>
+                <div style={{ width: 90, height: 36 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={timeSeriesData}>
+                      <Area dataKey="cumulative" stroke={cumulativeStroke} fill={cumulativeStroke} fillOpacity={0.12} dot={false} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-              <p className="text-2xl font-bold">PKR {budgetRemaining.toLocaleString()}</p>
-              <p className="text-xs text-muted-foreground">
-                {((budgetRemaining / totalBudget) * 100).toFixed(1)}% left
-              </p>
+              <p className="text-xs text-muted-foreground mt-2">Projected: PKR {projectedMonthly.toFixed(0)}/mo</p>
             </CardContent>
           </Card>
-          
+
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2">
-                <Activity className="w-4 h-4 text-blue-500" />
-                <p className="text-sm font-medium">Daily Average</p>
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Transactions</p>
+                  <p className="text-lg font-semibold">{filteredExpenses.length}</p>
+                </div>
+                <div style={{ width: 90, height: 36 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={timeSeriesData}>
+                      <Line dataKey="amount" stroke="#9B59B6" strokeWidth={2} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-              <p className="text-2xl font-bold">PKR {averageDaily.toFixed(0)}</p>
-              <p className="text-xs text-muted-foreground">
-                Projected: PKR {projectedMonthly.toFixed(0)}/mo
-              </p>
+              <p className="text-xs text-muted-foreground mt-2">Avg: PKR {filteredExpenses.length > 0 ? (totalSpent / filteredExpenses.length).toFixed(0) : 0}</p>
             </CardContent>
           </Card>
-          
+
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2">
-                <Calendar className="w-4 h-4 text-purple-500" />
-                <p className="text-sm font-medium">Transactions</p>
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Daily Avg</p>
+                  <p className="text-lg font-semibold">PKR {averageDaily.toFixed(0)}</p>
+                </div>
+                <div style={{ width: 90, height: 36 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={timeSeriesData}>
+                      <Area dataKey="amount" stroke="#F39C12" fill="#F39C12" fillOpacity={0.12} dot={false} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-              <p className="text-2xl font-bold">{filteredExpenses.length}</p>
-              <p className="text-xs text-muted-foreground">
-                Avg: PKR {filteredExpenses.length > 0 ? (totalSpent / filteredExpenses.length).toFixed(0) : 0}
-              </p>
+              <p className="text-xs text-muted-foreground mt-2">Projected monthly shown above</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Spending Trend */}
-          <Card data-testid="spending-trend" className="lg:col-span-2">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Spending Trend</CardTitle>
-              <Badge variant={spendingVelocity > 10 ? "destructive" : spendingVelocity < -10 ? "default" : "secondary"}>
-                {spendingVelocity > 0 ? "↗" : "↘"} {Math.abs(spendingVelocity).toFixed(1)}%
+        {/* Big Trend chart (Area + cumulative line) */}
+        <Card data-testid="spending-trend">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-lg">Spending Trend</CardTitle>
+            <div className="flex items-center gap-3">
+              <Badge variant={Math.abs((timeSeriesData[timeSeriesData.length-1]?.amount || 0) - (timeSeriesData[0]?.amount || 0)) > 1000 ? "destructive" : "secondary"}>
+                {timeSeriesData.length > 1 ? `${Math.sign((timeSeriesData[timeSeriesData.length-1]?.amount || 0) - (timeSeriesData[0]?.amount || 0)) === 1 ? '↗' : '↘'} ${Math.abs(((timeSeriesData[timeSeriesData.length-1]?.amount || 0) - (timeSeriesData[0]?.amount || 0))).toFixed(0)}` : '—'}
               </Badge>
-            </CardHeader>
-            <CardContent>
-              {expensesLoading ? (
-                <Skeleton className="h-64 w-full" />
-              ) : (
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={timeSeriesData}>
-                    <defs>
-                      <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(145 63% 49%)" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="hsl(145 63% 49%)" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 32% 91%)" />
-                    <XAxis 
-                      dataKey={viewPeriod === 'week' ? 'day' : 'fullDate'} 
-                      className="text-xs"
-                    />
-                    <YAxis className="text-xs" />
-                    <Tooltip 
-                      formatter={(value) => [`PKR ${Number(value).toFixed(2)}`, 'Amount']}
-                      labelFormatter={(label) => `Date: ${label}`}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="amount"
-                      stroke="hsl(145 63% 49%)"
-                      fillOpacity={1}
-                      fill="url(#colorAmount)"
-                      strokeWidth={2}
-                    />
-                    <Line 
-                      type="monotone"
-                      dataKey="cumulative"
-                      stroke="hsl(262 52% 47%)"
-                      strokeWidth={1}
-                      strokeDasharray="5 5"
-                      dot={false}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {expensesLoading ? (
+              <Skeleton className="h-64 w-full" />
+            ) : (
+              <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+                <AreaChart data={timeSeriesData} margin={{ top: 8, right: 18, left: 0, bottom: 20 }}>
+                  <defs>
+                    <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={areaStroke} stopOpacity={0.25}/>
+                      <stop offset="95%" stopColor={areaStroke} stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 32% 91%)" />
+                  <XAxis dataKey={viewPeriod === 'week' ? 'day' : 'fullDate'} className="text-xs" tick={{ fontSize: isMobile ? 10 : 12 }} />
+                  <YAxis className="text-xs" />
+                  <Tooltip formatter={(value) => [`PKR ${Number(value).toLocaleString()}`, 'Amount']} labelFormatter={(label) => `Date: ${label}`} />
+                  <Area type="monotone" dataKey="amount" stroke={areaStroke} fill="url(#colorAmount)" strokeWidth={2} dot={{ r: isMobile ? 2 : 3 }} />
+                  <Line type="monotone" dataKey="cumulative" stroke={cumulativeStroke} strokeDasharray="4 4" strokeWidth={1.5} dot={false} />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
 
-          {/* Category Breakdown */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Category Breakdown (Pie) */}
           <Card data-testid="category-chart">
             <CardHeader>
-              <CardTitle className="text-lg">Category Spending</CardTitle>
+              <CardTitle className="text-lg">Category Breakdown</CardTitle>
             </CardHeader>
             <CardContent>
               {categoriesLoading ? (
@@ -590,54 +654,54 @@ export default function Analytics() {
               ) : categoryAnalysis.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">No budget allocations available</p>
               ) : (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart
-                    data={categoryAnalysis.sort((a, b) => b.allocated - a.allocated)}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 32% 91%)" />
-                    <XAxis 
-                      dataKey="name" 
-                      angle={-45}
-                      textAnchor="end"
-                      height={80}
-                      interval={0}
-                      className="text-xs"
-                    />
-                    <YAxis className="text-xs" />
-                    <Tooltip 
-                      formatter={(value, name) => [
-                        `PKR ${Number(value).toLocaleString()}`, 
-                        name === 'allocated' ? 'Allocated' : 'Spent'
-                      ]}
-                      labelFormatter={(label) => `Category: ${label}`}
-                    />
-                    {/* Allocated budget bars (hollow/light) */}
-                    <Bar 
-                      dataKey="allocated" 
-                      radius={[4, 4, 0, 0]}
-                      fillOpacity={0.3}
-                    >
-                      {categoryAnalysis.map((entry, index) => (
-                        <Cell key={`allocated-${index}`} fill={entry.color} />
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  <div style={{ width: isMobile ? 180 : 220, height: isMobile ? 180 : 220 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={categoryAnalysis}
+                          dataKey="spent"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={isMobile ? 36 : 48}
+                          outerRadius={isMobile ? 64 : 90}
+                          paddingAngle={4}
+                          labelLine={false}
+                        >
+                          {categoryAnalysis.map((entry, idx) => (
+                            <Cell key={`cell-${idx}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  <div className="flex-1">
+                    <div className="space-y-3">
+                      {categoryAnalysis.map((cat) => (
+                        <div key={cat.id} className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-3 h-3 rounded" style={{ backgroundColor: cat.color }} />
+                            <div>
+                              <p className="font-medium text-sm">{cat.name}</p>
+                              <p className="text-xs text-muted-foreground">{cat.transactionCount} tx • PKR {cat.spent.toLocaleString()}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold">PKR {cat.spent.toLocaleString()}</p>
+                            <p className="text-xs text-muted-foreground">{cat.budgetUtilization.toFixed(0)}% used</p>
+                          </div>
+                        </div>
                       ))}
-                    </Bar>
-                    {/* Spent budget bars (solid) */}
-                    <Bar 
-                      dataKey="spent" 
-                      radius={[4, 4, 0, 0]}
-                    >
-                      {categoryAnalysis.map((entry, index) => (
-                        <Cell key={`spent-${index}`} fill={entry.color} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                    </div>
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Weekday Spending Pattern */}
+          {/* Weekday / Hour pattern (Line) */}
           <Card data-testid="weekday-pattern">
             <CardHeader>
               <CardTitle className="text-lg">Spending by Weekday</CardTitle>
@@ -646,22 +710,22 @@ export default function Analytics() {
               {expensesLoading ? (
                 <Skeleton className="h-64 w-full" />
               ) : (
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={spendingByWeekday}>
+                <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+                  <LineChart data={spendingByWeekday} margin={{ top: 10, right: 20, left: 0, bottom: 20 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 32% 91%)" />
                     <XAxis dataKey="day" className="text-xs" />
                     <YAxis className="text-xs" />
                     <Tooltip formatter={(value) => [`PKR ${Number(value).toFixed(2)}`, 'Amount']} />
-                    <Bar dataKey="amount" fill="hsl(217 91% 60%)" radius={[4, 4, 0, 0]} />
-                  </BarChart>
+                    <Line dataKey="amount" stroke="#3498DB" strokeWidth={2} dot={{ r: 3 }} />
+                  </LineChart>
                 </ResponsiveContainer>
               )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Advanced Insights */}
-        <Card data-testid="advanced-insights">
+        {/* Smart Insights */}
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Smart Insights</CardTitle>
             <Button
@@ -673,118 +737,54 @@ export default function Analytics() {
             </Button>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Risk Assessment */}
-              <div className="p-4 bg-muted/30 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-3 bg-muted/30 rounded-lg">
                 <div className="flex items-center space-x-2 mb-2">
-                  <div className={`w-3 h-3 rounded-full ${
-                    riskScore < 30 ? 'bg-green-500' : riskScore < 70 ? 'bg-yellow-500' : 'bg-red-500'
-                  }`} />
+                  <div className={`w-3 h-3 rounded-full ${budgetUtilization < 50 ? 'bg-green-500' : budgetUtilization < 80 ? 'bg-yellow-500' : 'bg-red-500'}`} />
                   <p className="font-medium text-sm">Budget Health</p>
                 </div>
-                <p className="text-2xl font-bold">{riskScore.toFixed(0)}%</p>
-                <p className="text-xs text-muted-foreground">
-                  {riskScore < 30 ? 'Excellent control' : riskScore < 70 ? 'Monitor closely' : 'Action needed'}
-                </p>
+                <p className="text-2xl font-bold">{Math.min(100, budgetUtilization).toFixed(0)}%</p>
+                <p className="text-xs text-muted-foreground">{budgetUtilization < 30 ? 'Excellent' : budgetUtilization < 70 ? 'Monitor' : 'Action needed'}</p>
               </div>
 
-              {/* Spending Velocity */}
-              <div className="p-4 bg-muted/30 rounded-lg">
+              <div className="p-3 bg-muted/30 rounded-lg">
                 <div className="flex items-center space-x-2 mb-2">
-                  {spendingVelocity > 0 ? 
-                    <TrendingUp className="w-4 h-4 text-red-500" /> : 
-                    <TrendingDown className="w-4 h-4 text-green-500" />
-                  }
+                  <TrendingUp className="w-4 h-4 text-red-500" />
                   <p className="font-medium text-sm">Spending Trend</p>
                 </div>
-                <p className="text-2xl font-bold">{spendingVelocity > 0 ? '+' : ''}{spendingVelocity.toFixed(1)}%</p>
-                <p className="text-xs text-muted-foreground">
-                  vs. previous period
-                </p>
+                <p className="text-2xl font-bold">{(timeSeriesData.length > 1 ? ((timeSeriesData[timeSeriesData.length-1].amount - timeSeriesData[0].amount) / Math.max(1, timeSeriesData[0].amount)) * 100 : 0).toFixed(1)}%</p>
+                <p className="text-xs text-muted-foreground">vs. period start</p>
               </div>
 
-              {/* Peak Spending */}
-              <div className="p-4 bg-muted/30 rounded-lg">
-                <div className="flex items-center space-x-2 mb-2">
-                  <Calendar className="w-4 h-4 text-blue-500" />
-                  <p className="font-medium text-sm">Peak Day</p>
-                </div>
-                <p className="text-lg font-bold">{highestSpendingDay?.day || 'N/A'}</p>
-                <p className="text-xs text-muted-foreground">
-                  PKR {highestSpendingDay?.amount?.toFixed(2) || 0}
-                </p>
-              </div>
-
-              {/* Best Category */}
-              <div className="p-4 bg-muted/30 rounded-lg">
+              <div className="p-3 bg-muted/30 rounded-lg">
                 <div className="flex items-center space-x-2 mb-2">
                   <CheckCircle className="w-4 h-4 text-green-500" />
-                  <p className="font-medium text-sm">Most Efficient</p>
+                  <p className="font-medium text-sm">Most Efficient Category</p>
                 </div>
                 <p className="text-lg font-bold">
-                  {categoryAnalysis.reduce((best, cat) => 
-                    cat.efficiency > best.efficiency ? cat : best, 
-                    categoryAnalysis[0] || { name: 'N/A', efficiency: 0 }
-                  ).name}
+                  {categoryAnalysis.reduce((best, cat) => cat.efficiency > best.efficiency ? cat : best, categoryAnalysis[0] || { name: 'N/A', efficiency: 0 }).name}
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  Best budget utilization
-                </p>
+                <p className="text-xs text-muted-foreground">Best budget utilization</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Budget Progress */}
-        <Card data-testid="budget-progress">
-          <CardHeader>
-            <CardTitle className="text-lg">Budget Progress</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {categoriesLoading ? (
-              <div className="space-y-4">
-                {[1, 2, 3, 4].map((i) => (
-                  <Skeleton key={i} className="h-16 w-full" />
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {categoryAnalysis.map((category) => {
-                  const isOverspent = category.spent > category.allocated;
-                  
-                  return (
-                    <div key={category.id} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div 
-                            className="w-3 h-3 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: category.color }}
-                          />
-                          <span className="font-medium text-sm">{category.name}</span>
-                          {isOverspent && (
-                            <Badge variant="destructive" className="text-xs">Over Budget</Badge>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-medium">
-                            PKR {category.spent.toLocaleString()} / {category.allocated.toLocaleString()}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {category.budgetUtilization.toFixed(1)}% used
-                          </p>
-                        </div>
-                      </div>
-                      <div className="w-full bg-muted rounded-full h-2">
-                        <div 
-                          className={`h-2 rounded-full transition-all ${
-                            isOverspent ? 'bg-red-500' : 'bg-green-500'
-                          }`}
-                          style={{ width: `${Math.min(category.budgetUtilization, 100)}%` }}
-                        />
+            {showDetailedInsights && (
+              <div className="mt-4 space-y-3">
+                {categoryAnalysis.slice(0, 6).map(cat => (
+                  <div key={cat.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded" style={{ backgroundColor: cat.color }} />
+                      <div>
+                        <p className="font-medium text-sm">{cat.name}</p>
+                        <p className="text-xs text-muted-foreground">{cat.transactionCount} tx • Avg PKR {cat.averageTransaction.toFixed(0)}</p>
                       </div>
                     </div>
-                  );
-                })}
+                    <div className="text-right">
+                      <p className="font-semibold">PKR {cat.spent.toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground">{cat.budgetUtilization.toFixed(0)}% used</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>
