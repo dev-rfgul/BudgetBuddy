@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Calendar, Target, Wallet, PieChart } from "lucide-react";
+import { TrendingUp, AlertTriangle, CheckCircle, Wallet, PieChart } from "lucide-react";
 import { useState, useEffect } from "react";
 
 // Mock BudgetSummary type - in real app this would be imported
@@ -99,7 +99,7 @@ export default function BudgetOverview({ summary, isLoading }: BudgetOverviewPro
       </Card>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+  <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
         {/* Total Spent */}
         <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-200">
           <CardContent className="p-6">
@@ -142,42 +142,7 @@ export default function BudgetOverview({ summary, isLoading }: BudgetOverviewPro
           </CardContent>
         </Card>
 
-        {/* Categories */}
-        <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-200">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                <PieChart className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-              </div>
-            </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white" data-testid="category-count">
-              {summary.categoryCount}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">Categories</p>
-            <div className="mt-2 text-xs text-purple-600 dark:text-purple-400 font-medium">
-              Active budgets
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Days Left */}
-        <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-200">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              </div>
-              {summary.daysLeft <= 7 && <AlertTriangle className="w-4 h-4 text-orange-500" />}
-            </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white" data-testid="days-left">
-              {summary.daysLeft}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">Days Left</p>
-            <div className="mt-2 text-xs text-blue-600 dark:text-blue-400 font-medium">
-              {summary.daysLeft <= 7 ? 'Month ending soon' : 'Time remaining'}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Categories and Days Left cards removed as per request */}
       </div>
 
       {/* Insights Card */}

@@ -120,43 +120,7 @@ export default function Dashboard() {
                   </ResponsiveContainer>
                 )}
 
-                {/* Totals under chart */}
-                <div className="grid grid-cols-2 gap-3 mt-4" data-testid="chart-totals">
-                  <Card className="border border-border">
-                    <CardContent className="p-3">
-                      {summaryLoading ? (
-                        <div className="space-y-2">
-                          <Skeleton className="h-5 w-24" />
-                          <Skeleton className="h-4 w-16" />
-                        </div>
-                      ) : (
-                        <>
-                          <p className="text-base font-semibold leading-none" data-testid="total-spent-top">
-                            PKR {Number(summary?.totalSpent ?? 0).toLocaleString()}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">Total Spent</p>
-                        </>
-                      )}
-                    </CardContent>
-                  </Card>
-                  <Card className="border border-border">
-                    <CardContent className="p-3">
-                      {summaryLoading ? (
-                        <div className="space-y-2">
-                          <Skeleton className="h-5 w-24" />
-                          <Skeleton className="h-4 w-20" />
-                        </div>
-                      ) : (
-                        <>
-                          <p className="text-base font-semibold leading-none" data-testid="remaining-top">
-                            PKR {Number(summary?.remainingBudget ?? 0).toLocaleString()}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">Remaining</p>
-                        </>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
+                {/* Totals under chart removed as per request */}
               </CardContent>
             </Card>
           </TabsContent>
