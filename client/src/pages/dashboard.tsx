@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Plus, DollarSign } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from "recharts";
@@ -81,6 +82,94 @@ export default function Dashboard() {
           </div>
         </div>
       </header>
+
+      {/* Header Tabs - Chart */}
+      <section className="max-w-md mx-auto px-4 mt-4" data-testid="header-chart-section">
+        <Tabs defaultValue="chart" className="w-full">
+          <TabsList className="w-full justify-start">
+            <TabsTrigger value="chart">Chart</TabsTrigger>
+          </TabsList>
+          <TabsContent value="chart">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Spending Overview</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {categoriesLoading || expensesLoading ? (
+                  <Skeleton className="h-40 w-full" />
+                ) : chartData.length === 0 ? (
+                  <div className="text-center py-8 text-sm text-muted-foreground">
+                    No category data yet
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={160}>
+                    <BarChart data={chartData} margin={{ top: 4, right: 8, left: 4, bottom: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 32% 91%)" />
+                      <XAxis dataKey="name" interval={0} angle={-30} textAnchor="end" height={30} className="text-[10px]" />
+                      <YAxis className="text-[10px]" />
+                      <Tooltip 
+                        formatter={(value, name) => [
+                          `PKR ${Number(value as number).toLocaleString()}`,
+                          name === 'allocated' ? 'Allocated' : 'Spent'
+                        ]}
+                        labelFormatter={(label) => `Category: ${label}`}
+                      />
+                      <Bar dataKey="allocated" radius={[2, 2, 0, 0]} fillOpacity={0.25}>
+                        {chartData.map((entry, index) => (
+                          <Cell key={`h-allocated-${index}`} fill={entry.color} />
+                        ))}
+                      </Bar>
+                      <Bar dataKey="spent" radius={[2, 2, 0, 0]}>
+                        {chartData.map((entry, index) => (
+                          <Cell key={`h-spent-${index}`} fill={entry.color} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+
+                {/* Totals under chart */}
+                <div className="grid grid-cols-2 gap-3 mt-4" data-testid="chart-totals">
+                  <Card className="border border-border">
+                    <CardContent className="p-3">
+                      {summaryLoading ? (
+                        <div className="space-y-2">
+                          <Skeleton className="h-5 w-24" />
+                          <Skeleton className="h-4 w-16" />
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-base font-semibold leading-none" data-testid="total-spent-top">
+                            PKR {Number(summary?.totalSpent ?? 0).toLocaleString()}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">Total Spent</p>
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+                  <Card className="border border-border">
+                    <CardContent className="p-3">
+                      {summaryLoading ? (
+                        <div className="space-y-2">
+                          <Skeleton className="h-5 w-24" />
+                          <Skeleton className="h-4 w-20" />
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-base font-semibold leading-none" data-testid="remaining-top">
+                            PKR {Number(summary?.remainingBudget ?? 0).toLocaleString()}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">Remaining</p>
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </section>
 
       {/* Budget Overview */}
       <BudgetOverview summary={summary} isLoading={summaryLoading} />
