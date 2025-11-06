@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Plus, DollarSign } from "lucide-react";
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from "recharts";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, LineChart, Line } from "recharts";
 import BudgetOverview from "@/components/budget-overview";
 import CategoryTile from "@/components/category-tile";
 import AddExpenseModal from "@/components/add-expense-modal";
@@ -102,8 +102,8 @@ export default function Dashboard() {
                     No category data yet
                   </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height={160}>
-                    <BarChart data={chartData} margin={{ top: 4, right: 8, left: 4, bottom: 20 }}>
+                  <ResponsiveContainer width="100%" height={180}>
+                    <LineChart data={chartData} margin={{ top: 4, right: 8, left: 4, bottom: 20 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 32% 91%)" />
                       <XAxis dataKey="name" interval={0} angle={-30} textAnchor="end" height={30} className="text-[10px]" />
                       <YAxis className="text-[10px]" />
@@ -114,17 +114,9 @@ export default function Dashboard() {
                         ]}
                         labelFormatter={(label) => `Category: ${label}`}
                       />
-                      <Bar dataKey="allocated" radius={[2, 2, 0, 0]} fillOpacity={0.25}>
-                        {chartData.map((entry, index) => (
-                          <Cell key={`h-allocated-${index}`} fill={entry.color} />
-                        ))}
-                      </Bar>
-                      <Bar dataKey="spent" radius={[2, 2, 0, 0]}>
-                        {chartData.map((entry, index) => (
-                          <Cell key={`h-spent-${index}`} fill={entry.color} />
-                        ))}
-                      </Bar>
-                    </BarChart>
+                      <Line type="monotone" dataKey="allocated" stroke="#94a3b8" strokeDasharray="5 5" dot={false} />
+                      <Line type="monotone" dataKey="spent" stroke="#2563eb" strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} />
+                    </LineChart>
                   </ResponsiveContainer>
                 )}
 
