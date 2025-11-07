@@ -1,16 +1,16 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Plus, DollarSign } from "lucide-react";
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, LineChart, Line } from "recharts";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from "recharts";
 import BudgetOverview from "@/components/budget-overview";
 import CategoryTile from "@/components/category-tile";
 import AddExpenseModal from "@/components/add-expense-modal";
 import BottomNavigation from "@/components/bottom-navigation";
 import ManageBudgetModal from "@/components/manage-budget-modal";
 import TransactionsModal from "@/components/transactions-modal";
+import SpendingChart from "@/components/spending-chart";
 import { useCurrentBudget, useBudgetSummary } from "@/hooks/use-budget";
 import { useCategoriesWithAllocations, useExpenses } from "@/hooks/use-expenses";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -83,48 +83,9 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* Header Tabs - Chart */}
+      {/* Spending Chart Section */}
       <section className="max-w-md mx-auto px-4 mt-4" data-testid="header-chart-section">
-        <Tabs defaultValue="chart" className="w-full">
-          <TabsList className="w-full justify-start">
-            <TabsTrigger value="chart">Chart</TabsTrigger>
-          </TabsList>
-          <TabsContent value="chart">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Spending Overview</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {categoriesLoading || expensesLoading ? (
-                  <Skeleton className="h-40 w-full" />
-                ) : chartData.length === 0 ? (
-                  <div className="text-center py-8 text-sm text-muted-foreground">
-                    No category data yet
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height={180}>
-                    <LineChart data={chartData} margin={{ top: 4, right: 8, left: 4, bottom: 20 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 32% 91%)" />
-                      <XAxis dataKey="name" interval={0} angle={-30} textAnchor="end" height={30} className="text-[10px]" />
-                      <YAxis className="text-[10px]" />
-                      <Tooltip 
-                        formatter={(value, name) => [
-                          `PKR ${Number(value as number).toLocaleString()}`,
-                          name === 'allocated' ? 'Allocated' : 'Spent'
-                        ]}
-                        labelFormatter={(label) => `Category: ${label}`}
-                      />
-                      <Line type="monotone" dataKey="allocated" stroke="#94a3b8" strokeDasharray="5 5" dot={false} />
-                      <Line type="monotone" dataKey="spent" stroke="#2563eb" strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                )}
-
-                {/* Totals under chart removed as per request */}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        <SpendingChart expenses={expenses} isLoading={expensesLoading} />
       </section>
 
       {/* Budget Overview */}
