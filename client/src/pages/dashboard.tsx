@@ -11,9 +11,11 @@ import BottomNavigation from "@/components/bottom-navigation";
 import ManageBudgetModal from "@/components/manage-budget-modal";
 import TransactionsModal from "@/components/transactions-modal";
 import SpendingChart from "@/components/spending-chart";
+import CategoryChartModal from "@/components/category-chart-modal";
 import { useCurrentBudget, useBudgetSummary } from "@/hooks/use-budget";
 import { useCategoriesWithAllocations, useExpenses } from "@/hooks/use-expenses";
 import { Skeleton } from "@/components/ui/skeleton";
+import { type CategoryWithAllocation } from "@/types";
 
 const COLORS = ['#2ECC71', '#3498DB', '#E74C3C', '#F39C12', '#9B59B6', '#1ABC9C', '#E67E22', '#8E44AD'];
 
@@ -21,7 +23,8 @@ export default function Dashboard() {
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showManageBudget, setShowManageBudget] = useState(false);
   const [showTransactions, setShowTransactions] = useState(false);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [showCategoryChart, setShowCategoryChart] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<CategoryWithAllocation | null>(null);
   
   const { data: budget, isLoading: budgetLoading } = useCurrentBudget();
   const { data: summary, isLoading: summaryLoading } = useBudgetSummary(budget?.id);
@@ -139,8 +142,11 @@ export default function Dashboard() {
                 key={category.id}
                 category={category}
                 onClick={(id) => {
-                  setSelectedCategoryId(id);
-                  setShowTransactions(true);
+                  const cat = categories.find(c => c.id === id);
+                  if (cat) {
+                    setSelectedCategory(cat);
+                    setShowCategoryChart(true);
+                  }
                 }}
               />
             ))}
@@ -312,15 +318,25 @@ export default function Dashboard() {
       {budget && (
         <ManageBudgetModal open={showManageBudget} onOpenChange={setShowManageBudget} budgetId={budget.id} />
       )}
+      
+      {/* Category Chart Modal */}
+      <CategoryChartModal
+        open={showCategoryChart}
+        onOpenChange={(open) => {
+          if (!open) setSelectedCategory(null);
+          setShowCategoryChart(open);
+        }}
+        category={selectedCategory}
+        expenses={expenses}
+      />
+
+      {/* Transactions Modal */}
       {budget && (
         <TransactionsModal
           open={showTransactions}
-          onOpenChange={(open) => {
-            if (!open) setSelectedCategoryId(null);
-            setShowTransactions(open);
-          }}
+          onOpenChange={setShowTransactions}
           budgetId={budget.id}
-          categoryId={selectedCategoryId}
+          categoryId={null}
         />
       )}
     </div>
