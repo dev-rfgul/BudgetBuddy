@@ -27,12 +27,13 @@ export default function SpendingChart({ expenses, isLoading }: SpendingChartProp
     if (!expenses || expenses.length === 0) return [];
 
     const now = new Date();
+    const today = startOfDay(now);
     const data: ChartDataPoint[] = [];
 
     if (period === "day") {
       // Last 7 days
       for (let i = 6; i >= 0; i--) {
-        const date = subDays(now, i);
+        const date = subDays(today, i);
         const dayStart = startOfDay(date);
         const dayEnd = endOfDay(date);
         
@@ -52,8 +53,8 @@ export default function SpendingChart({ expenses, isLoading }: SpendingChartProp
     } else if (period === "week") {
       // Last 4 weeks
       for (let i = 3; i >= 0; i--) {
-        const weekStart = startOfWeek(subWeeks(now, i), { weekStartsOn: 1 });
-        const weekEnd = endOfWeek(subWeeks(now, i), { weekStartsOn: 1 });
+        const weekStart = startOfWeek(subWeeks(today, i), { weekStartsOn: 1 });
+        const weekEnd = endOfWeek(subWeeks(today, i), { weekStartsOn: 1 });
         
         const weekExpenses = expenses.filter(exp => {
           const expDate = new Date(exp.date);
@@ -69,23 +70,27 @@ export default function SpendingChart({ expenses, isLoading }: SpendingChartProp
         });
       }
     } else {
-      // Last 6 months
-      for (let i = 5; i >= 0; i--) {
-        const monthStart = startOfMonth(subMonths(now, i));
-        const monthEnd = endOfMonth(subMonths(now, i));
+      // Last 30 days (monthly view) - only show up to today
+      for (let i = 29; i >= 0; i--) {
+        const date = subDays(today, i);
+        const dayStart = startOfDay(date);
+        const dayEnd = endOfDay(date);
         
-        const monthExpenses = expenses.filter(exp => {
-          const expDate = new Date(exp.date);
-          return expDate >= monthStart && expDate <= monthEnd;
-        });
+        // Only include dates up to today
+        if (date <= today) {
+          const dayExpenses = expenses.filter(exp => {
+            const expDate = new Date(exp.date);
+            return expDate >= dayStart && expDate <= dayEnd;
+          });
 
-        const total = monthExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
-        
-        data.push({
-          label: format(monthStart, "MMM"),
-          amount: total,
-          date: monthStart,
-        });
+          const total = dayExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
+          
+          data.push({
+            label: format(date, "d"),
+            amount: total,
+            date: date,
+          });
+        }
       }
     }
 
@@ -179,6 +184,7 @@ export default function SpendingChart({ expenses, isLoading }: SpendingChartProp
                     tickLine={false}
                     axisLine={{ stroke: '#e5e7eb' }}
                     height={30}
+                    interval={period === "month" ? Math.floor(chartData.length / 6) : 0}
                   />
                   <YAxis 
                     tick={{ fontSize: 10, fill: '#6b7280' }}
@@ -265,7 +271,7 @@ export default function SpendingChart({ expenses, isLoading }: SpendingChartProp
             <p className="text-[11px] text-muted-foreground text-center mt-3">
               {period === "day" && "Daily spending for the last 7 days"}
               {period === "week" && "Weekly spending for the last 4 weeks"}
-              {period === "month" && "Monthly spending for the last 6 months"}
+              {period === "month" && "Daily spending for the last 30 days"}
             </p>
           </>
         )}
