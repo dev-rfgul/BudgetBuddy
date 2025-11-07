@@ -161,33 +161,40 @@ export default function SpendingChart({ expenses, isLoading }: SpendingChartProp
                   data={chartData} 
                   margin={{ top: 10, right: 10, left: -20, bottom: 5 }}
                 >
+                  <defs>
+                    <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid 
                     strokeDasharray="3 3" 
-                    stroke="hsl(var(--border))" 
-                    opacity={0.3}
+                    stroke="#e5e7eb" 
+                    opacity={0.5}
                     vertical={false}
                   />
                   <XAxis 
                     dataKey="label" 
-                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                    tick={{ fontSize: 11, fill: '#6b7280' }}
                     tickLine={false}
-                    axisLine={{ stroke: 'hsl(var(--border))' }}
+                    axisLine={{ stroke: '#e5e7eb' }}
                     height={30}
                   />
                   <YAxis 
-                    tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                    tick={{ fontSize: 10, fill: '#6b7280' }}
                     tickLine={false}
                     axisLine={false}
-                    tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                    tickFormatter={(value) => value === 0 ? '0' : `${(value / 1000).toFixed(0)}k`}
                     width={40}
                   />
                   <Tooltip 
                     contentStyle={{
-                      backgroundColor: 'hsl(var(--popover))',
-                      border: '1px solid hsl(var(--border))',
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #e5e7eb',
                       borderRadius: '8px',
                       fontSize: '12px',
                       padding: '8px 12px',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                     }}
                     formatter={(value: number) => [`PKR ${value.toLocaleString()}`, 'Spent']}
                     labelFormatter={(label, payload) => {
@@ -207,13 +214,19 @@ export default function SpendingChart({ expenses, isLoading }: SpendingChartProp
                   <Line 
                     type="monotone" 
                     dataKey="amount" 
-                    stroke="hsl(var(--primary))" 
+                    stroke="#3B82F6" 
                     strokeWidth={3}
-                    dot={false}
+                    fill="url(#colorAmount)"
+                    dot={{ 
+                      fill: '#3B82F6', 
+                      strokeWidth: 2, 
+                      r: 4,
+                      stroke: '#ffffff'
+                    }}
                     activeDot={{ 
                       r: 6, 
-                      fill: 'hsl(var(--primary))',
-                      stroke: 'hsl(var(--background))',
+                      fill: '#3B82F6',
+                      stroke: '#ffffff',
                       strokeWidth: 2
                     }}
                   />
