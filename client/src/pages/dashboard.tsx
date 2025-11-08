@@ -409,7 +409,6 @@ export default function Dashboard() {
       <BottomNavigation
         onAddExpenseClick={() => setShowAddExpense(true)}
         onManageBudgetClick={() => setShowManageBudget(true)}
-        onTransactionsClick={() => setShowTransactions(true)}
       />
 
       {/* Manage Budget Modal */}

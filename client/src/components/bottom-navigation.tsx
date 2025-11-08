@@ -1,74 +1,40 @@
-import { Link, useLocation } from "wouter";
-import { BarChart3, Plus, Settings, Clipboard } from "lucide-react";
+import { Plus, Settings } from "lucide-react";
 
 interface BottomNavigationProps {
   onAddExpenseClick: () => void;
   onManageBudgetClick?: () => void;
-  onTransactionsClick?: () => void;
 }
 
-export default function BottomNavigation({ onAddExpenseClick, onManageBudgetClick, onTransactionsClick }: BottomNavigationProps) {
-  const [location] = useLocation();
-
-  const isActive = (path: string) => location === path;
-
+export default function BottomNavigation({ onAddExpenseClick, onManageBudgetClick }: BottomNavigationProps) {
   return (
-    // Bottom navigation (visible on all screen sizes). Adjusts spacing on larger screens.
-    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border" data-testid="bottom-navigation" role="navigation" aria-label="Bottom navigation">
-      <div className="max-w-5xl mx-auto px-4">
-        <div className="flex items-center justify-between md:justify-around py-2">
-          <Link href="/">
-            <button
-              aria-current={isActive("/") ? 'page' : undefined}
-              className={`flex flex-col items-center space-y-0.5 py-2 px-3 touch-manipulation ${isActive("/") ? "text-primary" : "text-muted-foreground hover:text-foreground"} transition-colors`}
-              data-testid="nav-dashboard"
-            >
-              <BarChart3 className="w-6 h-6" />
-              <span className="text-[11px] font-medium">Dashboard</span>
-            </button>
-          </Link>
-          
-          <button 
-            onClick={() => onTransactionsClick?.()}
-            className="flex flex-col items-center space-y-0.5 py-2 px-3 text-muted-foreground hover:text-foreground transition-colors touch-manipulation"
-            data-testid="nav-transactions"
-            aria-label="Transactions"
-          >
-            <Clipboard className="w-6 h-6" />
-            <span className="text-[11px] font-medium">Transactions</span>
-          </button>
-          
+    // Bottom navigation with only Add Expense and Settings buttons
+    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-lg" data-testid="bottom-navigation" role="navigation" aria-label="Bottom navigation">
+      <div className="max-w-5xl mx-auto px-6">
+        <div className="flex items-center justify-around py-3">
+          {/* Add Expense Button */}
           <button 
             onClick={onAddExpenseClick}
-            className="flex flex-col items-center space-y-0.5 py-1 px-2 transition-colors"
+            className="flex flex-col items-center space-y-1 py-2 px-6 transition-all hover:scale-105 active:scale-95"
             data-testid="nav-add-expense"
             aria-label="Add expense"
           >
-            <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-md">
-              <Plus className="w-5 h-5 text-primary-foreground" />
+            <div className="w-14 h-14 bg-primary rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-shadow">
+              <Plus className="w-7 h-7 text-primary-foreground" />
             </div>
-            <span className="text-[11px] font-medium">Add</span>
+            <span className="text-xs font-semibold text-foreground">Add Expense</span>
           </button>
           
-          <Link href="/analytics">
-            <button 
-              aria-current={isActive("/analytics") ? 'page' : undefined}
-              className={`flex flex-col items-center space-y-0.5 py-2 px-3 ${isActive("/analytics") ? "text-primary" : "text-muted-foreground hover:text-foreground"} transition-colors`}
-              data-testid="nav-analytics"
-            >
-              <BarChart3 className="w-6 h-6" />
-              <span className="text-[11px] font-medium">Analytics</span>
-            </button>
-          </Link>
-          
+          {/* Settings Button */}
           <button 
             onClick={() => onManageBudgetClick?.()}
-            className="flex flex-col items-center space-y-0.5 py-2 px-3 text-muted-foreground hover:text-foreground transition-colors touch-manipulation"
-            data-testid="nav-budget"
-            aria-label="Budget"
+            className="flex flex-col items-center space-y-1 py-2 px-6 transition-all hover:scale-105 active:scale-95"
+            data-testid="nav-settings"
+            aria-label="Settings"
           >
-            <Settings className="w-6 h-6" />
-            <span className="text-[11px] font-medium">Budget</span>
+            <div className="w-14 h-14 bg-muted rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-shadow">
+              <Settings className="w-7 h-7 text-muted-foreground" />
+            </div>
+            <span className="text-xs font-semibold text-foreground">Settings</span>
           </button>
         </div>
       </div>
