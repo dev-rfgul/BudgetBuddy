@@ -69,7 +69,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
       <header className="bg-card border-b border-border sticky top-0 z-40">
-        <div className="max-w-md mx-auto px-4 py-4">
+        <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
@@ -86,217 +86,315 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* Spending Chart Section */}
-      <section className="max-w-md mx-auto px-4 mt-4" data-testid="header-chart-section">
-        <SpendingChart expenses={expenses} isLoading={expensesLoading} />
-      </section>
+      {/* Main Content Container with max-width for larger screens */}
+      <div className="max-w-7xl mx-auto px-4">
+        {/* Two column layout on desktop, single column on mobile */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+          
+          {/* Left Column - Charts and Overview */}
+          <div className="space-y-6">
+            {/* Spending Chart Section */}
+            <section data-testid="header-chart-section">
+              <SpendingChart expenses={expenses} isLoading={expensesLoading} />
+            </section>
 
-      {/* Budget Overview */}
-      <BudgetOverview summary={summary} isLoading={summaryLoading} />
+            {/* Budget Overview */}
+            <BudgetOverview summary={summary} isLoading={summaryLoading} />
 
-      {/* Quick Add Expense */}
-      <section className="px-4 mb-6 mt-6">
-        <Button 
-          onClick={() => setShowAddExpense(true)}
-          className="w-full py-4 px-6 font-medium flex items-center justify-center space-x-2"
-          data-testid="button-quick-add"
-        >
-          <Plus className="w-5 h-5" />
-          <span>Add Expense</span>
-        </Button>
-      </section>
-
-      {/* Budget Categories */}
-      <section className="px-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Budget Categories</h2>
-          <Button onClick={() => setShowManageBudget(true)} variant="ghost" size="sm" className="text-accent hover:text-white">
-            Manage
-          </Button>
-        </div>
-        
-        {categoriesLoading ? (
-          <div className="space-y-3">
-            {[1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} className="h-24 w-full" />
-            ))}
-          </div>
-        ) : categories.length === 0 ? (
-          <Card>
-            <CardContent className="pt-6 text-center">
-              <p className="text-muted-foreground">No budget categories set up yet.</p>
-              <Button
-                variant="outline"
-                className="mt-4"
-                onClick={() => setShowManageBudget(true)}
-                data-testid="button-setup-categories"
-              >
-                Set Up Categories
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-3" data-testid="categories-list">
-            {categories.map((category) => (
-              <CategoryTile
-                key={category.id}
-                category={category}
-                onClick={(id) => {
-                  const cat = categories.find(c => c.id === id);
-                  if (cat) {
-                    setSelectedCategory(cat);
-                    setShowCategoryChart(true);
-                  }
-                }}
-              />
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Recent Transactions */}
-      <section className="p-4 mt-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Recent Transactions</h2>
-
-          <Button onClick={() => setShowTransactions(true)} variant="ghost" size="sm" className="text-accent hover:text-white">
-            View All
-          </Button>
-        </div>
-        
-        {expensesLoading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-16 w-full" />
-            ))}
-          </div>
-        ) : recentExpenses.length === 0 ? (
-          <Card>
-            <CardContent className="pt-6 text-center">
-              <p className="text-muted-foreground">No transactions yet.</p>
+            {/* Quick Add Expense - Desktop only */}
+            <section className="hidden lg:block">
               <Button 
                 onClick={() => setShowAddExpense(true)}
-                variant="outline" 
-                className="mt-4"
-                data-testid="button-add-first-expense"
+                className="w-full py-4 px-6 font-medium flex items-center justify-center space-x-2"
+                data-testid="button-quick-add-desktop"
               >
-                Add Your First Expense
+                <Plus className="w-5 h-5" />
+                <span>Add Expense</span>
               </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-3" data-testid="recent-transactions">
-            {recentExpenses.map((expense) => (
-              <Card key={expense.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center">
-                        <DollarSign className="w-4 h-4 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium" data-testid={`transaction-category-${expense.id}`}>
-                          {categories.find((c) => c.id === expense.categoryId)?.name ?? 'Uncategorized'}
-                        </p>
-                        {expense.description ? (
-                          <p className="text-sm text-muted-foreground">{expense.description}</p>
-                        ) : null}
-                        <p className="text-sm text-muted-foreground">
-                          {new Date(expense.date).toLocaleDateString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric' 
-                          })}
-                        </p>
-                      </div>
+            </section>
+
+            {/* Category Spending Chart - Moved here for better layout */}
+            <section className="hidden lg:block">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">Category Spending</h2>
+                <Link href="/analytics">
+                  <Button variant="ghost" size="sm" className="text-accent hover:text-white">
+                    View Details
+                  </Button>
+                </Link>
+              </div>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Top Spending Categories</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {categoriesLoading || expensesLoading ? (
+                    <Skeleton className="h-64 w-full" />
+                  ) : chartData.length === 0 ? (
+                    <div className="text-center py-12">
+                      <p className="text-muted-foreground mb-4">No budget allocations yet</p>
+                      <Button 
+                        onClick={() => setShowManageBudget(true)}
+                        variant="outline" 
+                        className="mt-2"
+                      >
+                        Set Up Budget Categories
+                      </Button>
                     </div>
-                    <p className="font-semibold" data-testid={`transaction-amount-${expense.id}`}>
-                      -PKR {Number(expense.amount).toLocaleString()}
-                    </p>
-                  </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={240}>
+                      <BarChart
+                        data={chartData}
+                        margin={{ top: 10, right: 10, left: 10, bottom: 40 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 32% 91%)" />
+                        <XAxis 
+                          dataKey="name" 
+                          angle={-45}
+                          textAnchor="end"
+                          height={50}
+                          interval={0}
+                          className="text-xs"
+                        />
+                        <YAxis className="text-xs" />
+                        <Tooltip 
+                          formatter={(value, name) => [
+                            `PKR ${Number(value).toLocaleString()}`, 
+                            name === 'allocated' ? 'Allocated' : 'Spent'
+                          ]}
+                          labelFormatter={(label) => `Category: ${label}`}
+                        />
+                        <Bar 
+                          dataKey="allocated" 
+                          radius={[2, 2, 0, 0]}
+                          fillOpacity={0.3}
+                        >
+                          {chartData.map((entry, index) => (
+                            <Cell key={`allocated-${index}`} fill={entry.color} />
+                          ))}
+                        </Bar>
+                        <Bar 
+                          dataKey="spent" 
+                          radius={[2, 2, 0, 0]}
+                        >
+                          {chartData.map((entry, index) => (
+                            <Cell key={`spent-${index}`} fill={entry.color} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
                 </CardContent>
               </Card>
-            ))}
+            </section>
           </div>
-        )}
-      </section>
 
-      {/* Category Spending Chart */}
-      <section className="p-4 mt-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Category Spending</h2>
-          <Link href="/analytics">
-            <Button variant="ghost" size="sm" className="text-accent hover:text-white">
-              View Details
-            </Button>
-          </Link>
-        </div>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Top Spending Categories</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {categoriesLoading || expensesLoading ? (
-              <Skeleton className="h-64 w-full" />
-            ) : chartData.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground mb-4">No budget allocations yet</p>
-                <Button 
-                  onClick={() => setShowManageBudget(true)}
-                  variant="outline" 
-                  className="mt-2"
-                >
-                  Set Up Budget Categories
+          {/* Right Column - Categories and Transactions */}
+          <div className="space-y-6">
+            {/* Quick Add Expense - Mobile only */}
+            <section className="lg:hidden">
+              <Button 
+                onClick={() => setShowAddExpense(true)}
+                className="w-full py-4 px-6 font-medium flex items-center justify-center space-x-2"
+                data-testid="button-quick-add"
+              >
+                <Plus className="w-5 h-5" />
+                <span>Add Expense</span>
+              </Button>
+            </section>
+
+            {/* Budget Categories */}
+            <section>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">Budget Categories</h2>
+                <Button onClick={() => setShowManageBudget(true)} variant="ghost" size="sm" className="text-accent hover:text-white">
+                  Manage
                 </Button>
               </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={240}>
-                <BarChart
-                  data={chartData}
-                  margin={{ top: 10, right: 10, left: 10, bottom: 40 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 32% 91%)" />
-                  <XAxis 
-                    dataKey="name" 
-                    angle={-45}
-                    textAnchor="end"
-                    height={50}
-                    interval={0}
-                    className="text-xs"
-                  />
-                  <YAxis className="text-xs" />
-                  <Tooltip 
-                    formatter={(value, name) => [
-                      `PKR ${Number(value).toLocaleString()}`, 
-                      name === 'allocated' ? 'Allocated' : 'Spent'
-                    ]}
-                    labelFormatter={(label) => `Category: ${label}`}
-                  />
-                  {/* Allocated budget bars (hollow/light) */}
-                  <Bar 
-                    dataKey="allocated" 
-                    radius={[2, 2, 0, 0]}
-                    fillOpacity={0.3}
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell key={`allocated-${index}`} fill={entry.color} />
-                    ))}
-                  </Bar>
-                  {/* Spent budget bars (solid) */}
-                  <Bar 
-                    dataKey="spent" 
-                    radius={[2, 2, 0, 0]}
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell key={`spent-${index}`} fill={entry.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
-      </section>
+              
+              {categoriesLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3, 4].map((i) => (
+                    <Skeleton key={i} className="h-24 w-full" />
+                  ))}
+                </div>
+              ) : categories.length === 0 ? (
+                <Card>
+                  <CardContent className="pt-6 text-center">
+                    <p className="text-muted-foreground">No budget categories set up yet.</p>
+                    <Button
+                      variant="outline"
+                      className="mt-4"
+                      onClick={() => setShowManageBudget(true)}
+                      data-testid="button-setup-categories"
+                    >
+                      Set Up Categories
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-3" data-testid="categories-list">
+                  {categories.map((category) => (
+                    <CategoryTile
+                      key={category.id}
+                      category={category}
+                      onClick={(id) => {
+                        const cat = categories.find(c => c.id === id);
+                        if (cat) {
+                          setSelectedCategory(cat);
+                          setShowCategoryChart(true);
+                        }
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* Recent Transactions */}
+            <section>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">Recent Transactions</h2>
+                <Button onClick={() => setShowTransactions(true)} variant="ghost" size="sm" className="text-accent hover:text-white">
+                  View All
+                </Button>
+              </div>
+              
+              {expensesLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-16 w-full" />
+                  ))}
+                </div>
+              ) : recentExpenses.length === 0 ? (
+                <Card>
+                  <CardContent className="pt-6 text-center">
+                    <p className="text-muted-foreground">No transactions yet.</p>
+                    <Button 
+                      onClick={() => setShowAddExpense(true)}
+                      variant="outline" 
+                      className="mt-4"
+                      data-testid="button-add-first-expense"
+                    >
+                      Add Your First Expense
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-3" data-testid="recent-transactions">
+                  {recentExpenses.map((expense) => (
+                    <Card key={expense.id}>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center">
+                              <DollarSign className="w-4 h-4 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-medium" data-testid={`transaction-category-${expense.id}`}>
+                                {categories.find((c) => c.id === expense.categoryId)?.name ?? 'Uncategorized'}
+                              </p>
+                              {expense.description ? (
+                                <p className="text-sm text-muted-foreground">{expense.description}</p>
+                              ) : null}
+                              <p className="text-sm text-muted-foreground">
+                                {new Date(expense.date).toLocaleDateString('en-US', { 
+                                  month: 'short', 
+                                  day: 'numeric' 
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                          <p className="font-semibold" data-testid={`transaction-amount-${expense.id}`}>
+                            -PKR {Number(expense.amount).toLocaleString()}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* Category Spending Chart - Mobile only */}
+            <section className="lg:hidden">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">Category Spending</h2>
+                <Link href="/analytics">
+                  <Button variant="ghost" size="sm" className="text-accent hover:text-white">
+                    View Details
+                  </Button>
+                </Link>
+              </div>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Top Spending Categories</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {categoriesLoading || expensesLoading ? (
+                    <Skeleton className="h-64 w-full" />
+                  ) : chartData.length === 0 ? (
+                    <div className="text-center py-12">
+                      <p className="text-muted-foreground mb-4">No budget allocations yet</p>
+                      <Button 
+                        onClick={() => setShowManageBudget(true)}
+                        variant="outline" 
+                        className="mt-2"
+                      >
+                        Set Up Budget Categories
+                      </Button>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={240}>
+                      <BarChart
+                        data={chartData}
+                        margin={{ top: 10, right: 10, left: 10, bottom: 40 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 32% 91%)" />
+                        <XAxis 
+                          dataKey="name" 
+                          angle={-45}
+                          textAnchor="end"
+                          height={50}
+                          interval={0}
+                          className="text-xs"
+                        />
+                        <YAxis className="text-xs" />
+                        <Tooltip 
+                          formatter={(value, name) => [
+                            `PKR ${Number(value).toLocaleString()}`, 
+                            name === 'allocated' ? 'Allocated' : 'Spent'
+                          ]}
+                          labelFormatter={(label) => `Category: ${label}`}
+                        />
+                        <Bar 
+                          dataKey="allocated" 
+                          radius={[2, 2, 0, 0]}
+                          fillOpacity={0.3}
+                        >
+                          {chartData.map((entry, index) => (
+                            <Cell key={`allocated-${index}`} fill={entry.color} />
+                          ))}
+                        </Bar>
+                        <Bar 
+                          dataKey="spent" 
+                          radius={[2, 2, 0, 0]}
+                        >
+                          {chartData.map((entry, index) => (
+                            <Cell key={`spent-${index}`} fill={entry.color} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </CardContent>
+              </Card>
+            </section>
+          </div>
+        </div>
+      </div>
 
       {/* Add Expense Modal */}
       {budget && (
