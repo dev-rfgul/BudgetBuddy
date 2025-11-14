@@ -8,6 +8,7 @@ import Dashboard from "@/pages/dashboard";
 import Analytics from "@/pages/analytics";
 import BudgetSetup from "@/pages/budget-setup";
 import ManageBudget from "@/pages/manage-budget";
+import Transactions from "@/pages/transactions";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -17,6 +18,7 @@ function Router() {
       <Route path="/analytics" component={Analytics} />
       <Route path="/budget-setup" component={BudgetSetup} />
       <Route path="/manage-budget" component={ManageBudget} />
+      <Route path="/transactions" component={Transactions} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -8,7 +8,6 @@ import BudgetOverview from "@/components/budget-overview";
 import CategoryTile from "@/components/category-tile";
 import AddExpenseModal from "@/components/add-expense-modal";
 import BottomNavigation from "@/components/bottom-navigation";
-import TransactionsModal from "@/components/transactions-modal";
 import SpendingChart from "@/components/spending-chart";
 import CategoryChartModal from "@/components/category-chart-modal";
 import { useCurrentBudget, useBudgetSummary } from "@/hooks/use-budget";
@@ -20,7 +19,6 @@ const COLORS = ['#2ECC71', '#3498DB', '#E74C3C', '#F39C12', '#9B59B6', '#1ABC9C'
 
 export default function Dashboard() {
   const [showAddExpense, setShowAddExpense] = useState(false);
-  const [showTransactions, setShowTransactions] = useState(false);
   const [showCategoryChart, setShowCategoryChart] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<CategoryWithAllocation | null>(null);
   const [, navigate] = useLocation();
@@ -158,7 +156,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Recent Transactions</h2>
 
-          <Button onClick={() => setShowTransactions(true)} variant="ghost" size="sm" className="text-accent hover:text-white">
+          <Button onClick={() => navigate(`/transactions?budgetId=${budget?.id}`)} variant="ghost" size="sm" className="text-accent hover:text-white">
             View All
           </Button>
         </div>
@@ -322,16 +320,6 @@ export default function Dashboard() {
         category={selectedCategory}
         expenses={expenses}
       />
-
-      {/* Transactions Modal */}
-      {budget && (
-        <TransactionsModal
-          open={showTransactions}
-          onOpenChange={setShowTransactions}
-          budgetId={budget.id}
-          categoryId={null}
-        />
-      )}
     </div>
   );
 }

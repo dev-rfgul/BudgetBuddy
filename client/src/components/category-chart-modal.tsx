@@ -1,10 +1,12 @@
 import { useState, useMemo } from "react";
+import { useLocation } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import { type Expense, type CategoryWithAllocation } from "@/types";
 import { format, subDays, startOfDay, endOfDay, startOfWeek, endOfWeek, subWeeks } from "date-fns";
-import { X } from "lucide-react";
+import { X, List } from "lucide-react";
 
 interface CategoryChartModalProps {
   open: boolean;
@@ -23,6 +25,7 @@ interface ChartDataPoint {
 
 export default function CategoryChartModal({ open, onOpenChange, category, expenses }: CategoryChartModalProps) {
   const [period, setPeriod] = useState<ChartPeriod>("day");
+  const [, navigate] = useLocation();
 
   // Filter expenses for this category
   const categoryExpenses = useMemo(() => {
@@ -295,7 +298,7 @@ export default function CategoryChartModal({ open, onOpenChange, category, expen
 
           {/* Budget Overview */}
           <div className="mt-4 pt-4 border-t">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 mb-3">
               <div className="bg-muted/20 rounded-lg p-3">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Allocated</p>
                 <p className="text-base font-bold">PKR {category.allocated.toLocaleString()}</p>
@@ -307,6 +310,24 @@ export default function CategoryChartModal({ open, onOpenChange, category, expen
                 </p>
               </div>
             </div>
+            
+            {/* View Transactions Button */}
+            {categoryExpenses.length > 0 && (
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => {
+                  const budgetId = categoryExpenses[0]?.budgetId;
+                  if (budgetId) {
+                    onOpenChange(false);
+                    navigate(`/transactions?budgetId=${budgetId}&categoryId=${category.id}`);
+                  }
+                }}
+              >
+                <List className="w-4 h-4 mr-2" />
+                View All {categoryExpenses.length} Transaction{categoryExpenses.length !== 1 ? 's' : ''}
+              </Button>
+            )}
           </div>
         </div>
       </DialogContent>
