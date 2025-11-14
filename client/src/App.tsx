@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import InstallButton from "./components/install-button";
 import Dashboard from "@/pages/dashboard";
-import Analytics from "@/pages/analytics";
 import BudgetSetup from "@/pages/budget-setup";
 import ManageBudget from "@/pages/manage-budget";
 import Transactions from "@/pages/transactions";
@@ -15,7 +14,6 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
-      <Route path="/analytics" component={Analytics} />
       <Route path="/budget-setup" component={BudgetSetup} />
       <Route path="/manage-budget" component={ManageBudget} />
       <Route path="/transactions" component={Transactions} />

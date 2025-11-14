@@ -217,83 +217,6 @@ export default function Dashboard() {
         )}
       </section>
 
-      {/* Category Spending Chart */}
-      <section className="p-4 mt-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Category Spending</h2>
-          <Link href="/analytics">
-            <Button variant="ghost" size="sm" className="text-accent hover:text-white">
-              View Details
-            </Button>
-          </Link>
-        </div>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Top Spending Categories</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {categoriesLoading || expensesLoading ? (
-              <Skeleton className="h-64 w-full" />
-            ) : chartData.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground mb-4">No budget allocations yet</p>
-                <Button 
-                  onClick={() => navigate(`/manage-budget?budgetId=${budget?.id}`)}
-                  variant="outline" 
-                  className="mt-2"
-                >
-                  Set Up Budget Categories
-                </Button>
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={240}>
-                <BarChart
-                  data={chartData}
-                  margin={{ top: 10, right: 10, left: 10, bottom: 40 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 32% 91%)" />
-                  <XAxis 
-                    dataKey="name" 
-                    angle={-45}
-                    textAnchor="end"
-                    height={50}
-                    interval={0}
-                    className="text-xs"
-                  />
-                  <YAxis className="text-xs" />
-                  <Tooltip 
-                    formatter={(value, name) => [
-                      `PKR ${Number(value).toLocaleString()}`, 
-                      name === 'allocated' ? 'Allocated' : 'Spent'
-                    ]}
-                    labelFormatter={(label) => `Category: ${label}`}
-                  />
-                  {/* Allocated budget bars (hollow/light) */}
-                  <Bar 
-                    dataKey="allocated" 
-                    radius={[2, 2, 0, 0]}
-                    fillOpacity={0.3}
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell key={`allocated-${index}`} fill={entry.color} />
-                    ))}
-                  </Bar>
-                  {/* Spent budget bars (solid) */}
-                  <Bar 
-                    dataKey="spent" 
-                    radius={[2, 2, 0, 0]}
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell key={`spent-${index}`} fill={entry.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
-      </section>
 
       {/* Add Expense Modal */}
       {budget && (
@@ -308,6 +231,7 @@ export default function Dashboard() {
       <BottomNavigation
         onAddExpenseClick={() => setShowAddExpense(true)}
         onManageBudgetClick={() => navigate(`/manage-budget?budgetId=${budget?.id}`)}
+        onTransactionsClick={() => navigate(`/transactions?budgetId=${budget?.id}`)}
       />
 
       {/* Category Chart Modal */}
