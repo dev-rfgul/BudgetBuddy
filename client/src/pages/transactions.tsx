@@ -185,20 +185,20 @@ export default function Transactions() {
 
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         {/* Stats Summary */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           <Card>
-            <CardContent className="pt-6">
+            <CardContent className="pt-4 pb-4">
               <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-1">Total Transactions</p>
-                <p className="text-2xl font-bold text-primary">{transactionCount}</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">Transactions</p>
+                <p className="text-xl sm:text-2xl font-bold text-primary">{transactionCount}</p>
               </div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="pt-6">
+            <CardContent className="pt-4 pb-4">
               <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-1">Total Spent</p>
-                <p className="text-2xl font-bold text-destructive">PKR {totalAmount.toLocaleString()}</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">Total Spent</p>
+                <p className="text-xl sm:text-2xl font-bold text-destructive">₨{totalAmount.toLocaleString()}</p>
               </div>
             </CardContent>
           </Card>
@@ -207,102 +207,109 @@ export default function Transactions() {
         {/* Spending Trends Chart */}
         {currentMonthExpenses.length > 0 && categories.length > 0 && (
           <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
+            <CardHeader className="pb-3">
+              <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
                 <div className="flex items-center space-x-2">
-                  <TrendingUp className="w-5 h-5 text-primary" />
-                  <CardTitle className="text-lg">Spending Trends by Category</CardTitle>
+                  <TrendingUp className="w-4 h-4 text-primary flex-shrink-0" />
+                  <CardTitle className="text-base sm:text-lg">Spending Trends</CardTitle>
                 </div>
-                <Tabs value={chartPeriod} onValueChange={(v) => setChartPeriod(v as typeof chartPeriod)} className="w-auto">
-                  <TabsList className="h-8 p-1 bg-muted/50">
-                    <TabsTrigger value="7days" className="text-xs px-2.5 py-1">7 Days</TabsTrigger>
-                    <TabsTrigger value="14days" className="text-xs px-2.5 py-1">14 Days</TabsTrigger>
-                    <TabsTrigger value="30days" className="text-xs px-2.5 py-1">30 Days</TabsTrigger>
+                <Tabs value={chartPeriod} onValueChange={(v) => setChartPeriod(v as typeof chartPeriod)} className="w-full sm:w-auto">
+                  <TabsList className="h-8 p-0.5 bg-muted/50 w-full sm:w-auto">
+                    <TabsTrigger value="7days" className="text-[10px] sm:text-xs px-2 py-1 flex-1 sm:flex-none">7D</TabsTrigger>
+                    <TabsTrigger value="14days" className="text-[10px] sm:text-xs px-2 py-1 flex-1 sm:flex-none">14D</TabsTrigger>
+                    <TabsTrigger value="30days" className="text-[10px] sm:text-xs px-2 py-1 flex-1 sm:flex-none">30D</TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>
             </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.5} />
-                  <XAxis 
-                    dataKey="date" 
-                    tick={{ fontSize: 11, fill: '#6b7280' }}
-                    tickLine={false}
-                    axisLine={{ stroke: '#e5e7eb' }}
-                    interval={chartPeriod === '30days' ? 4 : chartPeriod === '14days' ? 1 : 0}
-                  />
-                  <YAxis 
-                    tick={{ fontSize: 11, fill: '#6b7280' }}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(value) => value === 0 ? '0' : `${(value / 1000).toFixed(0)}k`}
-                  />
-                  <Tooltip 
-                    contentStyle={{
-                      backgroundColor: '#ffffff',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                      padding: '8px 12px',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                    }}
-                    formatter={(value: number, name: string) => {
-                      const category = categories.find(c => c.id === name);
-                      return [`PKR ${value.toLocaleString()}`, category?.name || name];
-                    }}
-                    labelFormatter={(label, payload) => {
-                      if (payload && payload[0]) {
-                        const data = payload[0].payload;
-                        return format(data.fullDate, "EEEE, MMM d, yyyy");
-                      }
-                      return label;
-                    }}
-                  />
-                  <Legend 
-                    wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
-                    formatter={(value) => {
-                      const category = categories.find(c => c.id === value);
-                      return category?.name || value;
-                    }}
-                  />
-                  {categories.map((category) => (
-                    <Line
-                      key={category.id}
-                      type="monotone"
-                      dataKey={category.id}
-                      stroke={category.color}
-                      strokeWidth={2}
-                      dot={{ fill: category.color, strokeWidth: 2, r: 3, stroke: '#ffffff' }}
-                      activeDot={{ r: 5, fill: category.color, stroke: '#ffffff', strokeWidth: 2 }}
-                      name={category.name}
-                      connectNulls
+            <CardContent className="px-2 sm:px-6">
+              <div className="w-full overflow-x-auto">
+                <ResponsiveContainer width="100%" height={280} className="sm:h-[320px]">
+                  <LineChart data={chartData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.3} vertical={false} />
+                    <XAxis 
+                      dataKey="date" 
+                      tick={{ fontSize: 9, fill: '#6b7280' }}
+                      tickLine={false}
+                      axisLine={{ stroke: '#e5e7eb' }}
+                      interval={chartPeriod === '30days' ? 5 : chartPeriod === '14days' ? 2 : 0}
+                      height={20}
                     />
-                  ))}
-                </LineChart>
-              </ResponsiveContainer>
-              <p className="text-xs text-muted-foreground text-center mt-3">
-                Daily spending comparison across all categories
-              </p>
+                    <YAxis 
+                      tick={{ fontSize: 9, fill: '#6b7280' }}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(value) => value === 0 ? '0' : `${(value / 1000).toFixed(0)}k`}
+                      width={30}
+                    />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '6px',
+                        fontSize: '10px',
+                        padding: '6px 8px',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                      }}
+                      formatter={(value: number, name: string) => {
+                        const category = categories.find(c => c.id === name);
+                        return [`₨${value.toLocaleString()}`, category?.name || name];
+                      }}
+                      labelFormatter={(label, payload) => {
+                        if (payload && payload[0]) {
+                          const data = payload[0].payload;
+                          return format(data.fullDate, "MMM d");
+                        }
+                        return label;
+                      }}
+                    />
+                    <Legend 
+                      wrapperStyle={{ fontSize: '9px', paddingTop: '8px' }}
+                      formatter={(value) => {
+                        const category = categories.find(c => c.id === value);
+                        return category?.name || value;
+                      }}
+                      iconSize={8}
+                    />
+                    {categories.slice(0, 5).map((category) => (
+                      <Line
+                        key={category.id}
+                        type="monotone"
+                        dataKey={category.id}
+                        stroke={category.color}
+                        strokeWidth={2}
+                        dot={{ fill: category.color, strokeWidth: 1.5, r: 2, stroke: '#ffffff' }}
+                        activeDot={{ r: 4, fill: category.color, stroke: '#ffffff', strokeWidth: 2 }}
+                        name={category.name}
+                        connectNulls
+                      />
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              {categories.length > 5 && (
+                <p className="text-[9px] text-muted-foreground text-center mt-2">
+                  Showing top 5 categories • {categories.length - 5} more not displayed
+                </p>
+              )}
             </CardContent>
           </Card>
         )}
 
         {/* Category Filter Chips */}
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="pt-4 pb-4">
             <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center space-x-2">
-                <Filter className="w-4 h-4 text-muted-foreground" />
-                <h3 className="font-medium text-sm">Filter by Category</h3>
+              <div className="flex items-center space-x-1.5">
+                <Filter className="w-3.5 h-3.5 text-muted-foreground" />
+                <h3 className="font-medium text-xs sm:text-sm">Filter by Category</h3>
               </div>
               {selectedCategoryId && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setSelectedCategoryId(null)}
-                  className="h-auto py-1 px-2"
+                  className="h-auto py-1 px-2 text-xs"
                 >
                   <X className="w-3 h-3 mr-1" />
                   Clear
@@ -310,10 +317,10 @@ export default function Transactions() {
               )}
             </div>
             
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
               <Badge
                 variant={!selectedCategoryId ? "default" : "outline"}
-                className="cursor-pointer px-3 py-2 text-sm"
+                className="cursor-pointer px-2 py-1 text-[10px] sm:text-xs"
                 onClick={() => setSelectedCategoryId(null)}
               >
                 All ({currentMonthExpenses.length})
@@ -326,13 +333,13 @@ export default function Transactions() {
                   <Badge
                     key={categoryId}
                     variant={isSelected ? "default" : "outline"}
-                    className="cursor-pointer px-3 py-2 text-sm flex items-center space-x-1"
+                    className="cursor-pointer px-2 py-1 text-[10px] sm:text-xs flex items-center space-x-1"
                     onClick={() => setSelectedCategoryId(categoryId === selectedCategoryId ? null : categoryId)}
                     style={isSelected && category ? { backgroundColor: category.color, borderColor: category.color } : {}}
                   >
-                    {category && <IconComponent className="w-3 h-3" />}
-                    <span>{category?.name || 'Uncategorized'}</span>
-                    <span className="ml-1 opacity-70">({count})</span>
+                    {category && <IconComponent className="w-2.5 h-2.5 sm:w-3 sm:h-3" />}
+                    <span className="max-w-[60px] sm:max-w-none truncate">{category?.name || 'Uncategorized'}</span>
+                    <span className="opacity-70">({count})</span>
                   </Badge>
                 );
               })}
@@ -341,8 +348,8 @@ export default function Transactions() {
         </Card>
 
         {/* Sort Options */}
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
+          <div className="text-[11px] sm:text-sm text-muted-foreground">
             {selectedCategoryId ? (
               <>Showing {transactionCount} transaction{transactionCount !== 1 ? 's' : ''} for <span className="font-medium text-foreground">{findCategoryName(selectedCategoryId)}</span></>
             ) : (
@@ -351,14 +358,14 @@ export default function Transactions() {
           </div>
           
           <Select value={sortBy} onValueChange={(value) => setSortBy(value as typeof sortBy)}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[160px] h-8 text-xs">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="date-desc">Newest First</SelectItem>
-              <SelectItem value="date-asc">Oldest First</SelectItem>
-              <SelectItem value="amount-desc">Highest Amount</SelectItem>
-              <SelectItem value="amount-asc">Lowest Amount</SelectItem>
+              <SelectItem value="date-desc" className="text-xs">Newest First</SelectItem>
+              <SelectItem value="date-asc" className="text-xs">Oldest First</SelectItem>
+              <SelectItem value="amount-desc" className="text-xs">Highest Amount</SelectItem>
+              <SelectItem value="amount-asc" className="text-xs">Lowest Amount</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -367,15 +374,15 @@ export default function Transactions() {
         {isLoading ? (
           <Card>
             <CardContent className="pt-6">
-              <div className="text-center text-muted-foreground">Loading transactions…</div>
+              <div className="text-center text-sm text-muted-foreground">Loading transactions…</div>
             </CardContent>
           </Card>
         ) : sortedExpenses.length === 0 ? (
           <Card>
             <CardContent className="pt-6">
-              <div className="text-center py-8">
-                <DollarSign className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">
+              <div className="text-center py-6 sm:py-8">
+                <DollarSign className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground mx-auto mb-3 sm:mb-4" />
+                <p className="text-sm sm:text-base text-muted-foreground">
                   {selectedCategoryId 
                     ? `No transactions found for ${findCategoryName(selectedCategoryId)}`
                     : 'No transactions for this month.'
@@ -384,7 +391,7 @@ export default function Transactions() {
                 {selectedCategoryId && (
                   <Button
                     variant="outline"
-                    className="mt-4"
+                    className="mt-3 sm:mt-4 text-xs sm:text-sm"
                     onClick={() => setSelectedCategoryId(null)}
                   >
                     View All Transactions
@@ -394,50 +401,39 @@ export default function Transactions() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             {sortedExpenses.map((tx, index) => {
               const category = findCategory(tx.categoryId);
               const IconComponent = category ? iconMap[category.icon as keyof typeof iconMap] || Smile : Smile;
               
               return (
                 <Card key={tx.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-4">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex items-start justify-between gap-2 sm:gap-4">
                       {/* Left side - Icon and Details */}
-                      <div className="flex items-start space-x-3 flex-1 min-w-0">
+                      <div className="flex items-start space-x-2 sm:space-x-3 flex-1 min-w-0">
                         <div 
-                          className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0"
                           style={{ backgroundColor: category ? `${category.color}20` : '#e5e7eb' }}
                         >
                           {category ? (
-                            <IconComponent className="w-5 h-5" style={{ color: category.color }} />
+                            <IconComponent className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: category.color }} />
                           ) : (
-                            <DollarSign className="w-5 h-5 text-gray-500" />
+                            <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
                           )}
                         </div>
                         
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <h3 className="font-medium text-sm">{findCategoryName(tx.categoryId)}</h3>
-                            {category && (
-                              <Badge 
-                                variant="outline" 
-                                className="text-xs px-1.5 py-0"
-                                style={{ borderColor: category.color, color: category.color }}
-                              >
-                                {category.name}
-                              </Badge>
-                            )}
-                          </div>
+                          <h3 className="font-medium text-xs sm:text-sm mb-0.5">{findCategoryName(tx.categoryId)}</h3>
                           
                           {tx.description && (
-                            <p className="text-sm text-muted-foreground mb-1 break-words">
+                            <p className="text-[10px] sm:text-xs text-muted-foreground mb-1 break-words line-clamp-2">
                               {tx.description}
                             </p>
                           )}
                           
-                          <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                            <Calendar className="w-3 h-3" />
+                          <div className="flex items-center space-x-1.5 text-[9px] sm:text-xs text-muted-foreground">
+                            <Calendar className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                             <span>{new Date(tx.date).toLocaleString('en-US', { 
                               month: 'short', 
                               day: 'numeric',
@@ -449,20 +445,20 @@ export default function Transactions() {
                       </div>
 
                       {/* Right side - Amount and Actions */}
-                      <div className="flex flex-col items-end space-y-2 flex-shrink-0">
-                        <div className="font-bold text-base text-destructive">
-                          -PKR {Number(tx.amount).toLocaleString()}
+                      <div className="flex flex-col items-end space-y-1.5 flex-shrink-0">
+                        <div className="font-bold text-xs sm:text-sm text-destructive whitespace-nowrap">
+                          -₨{Number(tx.amount).toLocaleString()}
                         </div>
                         
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          className="h-6 sm:h-7 px-1.5 sm:px-2 text-[10px] sm:text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
                           onClick={() => handleDelete(tx.id)}
                           disabled={deleteMutation.isPending}
                         >
-                          <Trash2 className="w-4 h-4 mr-1" />
-                          Delete
+                          <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                          <span className="hidden sm:inline ml-1">Delete</span>
                         </Button>
                       </div>
                     </div>
