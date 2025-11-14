@@ -7,6 +7,7 @@ import InstallButton from "./components/install-button";
 import Dashboard from "@/pages/dashboard";
 import Analytics from "@/pages/analytics";
 import BudgetSetup from "@/pages/budget-setup";
+import ManageBudget from "@/pages/manage-budget";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -15,6 +16,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/analytics" component={Analytics} />
       <Route path="/budget-setup" component={BudgetSetup} />
+      <Route path="/manage-budget" component={ManageBudget} />
       <Route component={NotFound} />
     </Switch>
   );

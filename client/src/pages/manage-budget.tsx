@@ -1,0 +1,567 @@
+import { useEffect, useState } from "react";
+import { useLocation } from "wouter";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useUpdateBudget } from "@/hooks/use-budget";
+import { useBudgetSummary } from "@/hooks/use-budget";
+import { localStorageService } from "@/lib/localStorage";
+import { queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import type { Category, BudgetAllocation } from "@/types";
+import { ShoppingCart, Car, FileText, Zap, Smile, ArrowLeft, Plus, Wallet, TrendingUp, ChevronDown, ChevronUp } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+
+export default function ManageBudget() {
+  const [, navigate] = useLocation();
+  const { toast } = useToast();
+  const budgetId = new URLSearchParams(window.location.search).get('budgetId');
+  
+  const { data: summary } = useBudgetSummary(budgetId || undefined);
+  const { data: categories = [] } = useQuery<Category[]>({
+    queryKey: ["categories"],
+    queryFn: async () => await localStorageService.getCategories(),
+  });
+
+  const { data: allocations = [] } = useQuery<BudgetAllocation[]>({
+    queryKey: ["allocations", budgetId],
+    enabled: !!budgetId,
+    queryFn: async () => (budgetId ? await localStorageService.getBudgetAllocations(budgetId) : []),
+  });
+
+  const [localAlloc, setLocalAlloc] = useState<Record<string, { id?: string; allocatedAmount: string }>>({});
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryIcon, setNewCategoryIcon] = useState("");
+  const [newCategoryColor, setNewCategoryColor] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
+  const [extraIncome, setExtraIncome] = useState("");
+  const [extraIncomeNote, setExtraIncomeNote] = useState("");
+  const [showAddIncome, setShowAddIncome] = useState(false);
+  const [showCreateCategory, setShowCreateCategory] = useState(false);
+  const updateBudget = useUpdateBudget();
+
+  const iconOptions = [
+    { value: "shopping-cart", label: "Shopping Cart", icon: ShoppingCart },
+    { value: "car", label: "Car", icon: Car },
+    { value: "file-text", label: "File", icon: FileText },
+    { value: "zap", label: "Lightning", icon: Zap },
+    { value: "smile", label: "Smile", icon: Smile },
+  ];
+
+  const colorOptions = [
+    { value: "#2ECC71", label: "Green" },
+    { value: "#3498DB", label: "Blue" },
+    { value: "#E74C3C", label: "Red" },
+    { value: "#F39C12", label: "Orange" },
+    { value: "#9B59B6", label: "Purple" },
+  ];
+
+  const createCategoryMutation = useMutation({
+    mutationFn: async (categoryData: { name: string; icon: string; color: string }) => {
+      return await localStorageService.createCategory({ ...categoryData, isDefault: false });
+    },
+    onSuccess: (created: Category) => {
+      queryClient.setQueryData(["categories"], (old: Category[] | undefined) => {
+        const arr = old ? [...old] : [];
+        arr.push(created);
+        return arr;
+      });
+
+      setLocalAlloc((s) => ({ ...s, [created.id]: { id: undefined, allocatedAmount: "0" } }));
+
+      setNewCategoryName("");
+      setNewCategoryIcon("");
+      setNewCategoryColor("");
+      setIsCreating(false);
+      setShowCreateCategory(false);
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      queryClient.invalidateQueries({ queryKey: ["budget"] });
+      toast({ title: "Success", description: "Category created successfully!" });
+    },
+  });
+
+  useEffect(() => {
+    const map: Record<string, { id?: string; allocatedAmount: string }> = {};
+    categories.forEach((c) => {
+      const existing = allocations.find((a) => a.categoryId === c.id);
+      map[c.id] = { id: existing?.id, allocatedAmount: existing ? String(existing.allocatedAmount) : "0" };
+    });
+    setLocalAlloc(map);
+  }, [categories, allocations]);
+
+  const handleCreateCategory = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!newCategoryName || !newCategoryIcon || !newCategoryColor) {
+      toast({ title: "Error", description: "Please fill in all category fields", variant: "destructive" });
+      return;
+    }
+    setIsCreating(true);
+    try {
+      await createCategoryMutation.mutateAsync({ name: newCategoryName, icon: newCategoryIcon, color: newCategoryColor });
+    } catch (err) {
+      setIsCreating(false);
+      toast({ title: "Error", description: "Failed to create category", variant: "destructive" });
+    }
+  };
+
+  const handleAddExtraIncome = async () => {
+    if (!budgetId) return;
+    const amount = parseFloat(extraIncome || "0");
+    if (isNaN(amount) || amount <= 0) {
+      toast({ title: "Error", description: "Enter a valid amount", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const current = summary?.monthlyBudget ?? 0;
+      const newTotal = current + amount;
+      await updateBudget.mutateAsync({ id: budgetId, data: { monthlyIncome: String(newTotal) } });
+      await localStorageService.createIncomeRecord({ budgetId, amount: String(amount), note: extraIncomeNote });
+      
+      queryClient.setQueryData(["budget", budgetId, "summary"], (old: any) => {
+        if (!old) return old;
+        const monthlyBudget = Number(old.monthlyBudget ?? 0) + amount;
+        const totalAllocated = old.totalAllocated ?? 0;
+        const totalSpent = old.totalSpent ?? 0;
+        const remainingBudget = monthlyBudget - totalAllocated;
+        return { ...old, monthlyBudget, totalAllocated, totalSpent, remainingBudget };
+      });
+      queryClient.setQueryData(["budget", budgetId], (old: any) => {
+        if (!old) return old;
+        return { ...old, monthlyIncome: String(Number(old.monthlyIncome ?? 0) + amount) };
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ["budget", budgetId, "summary"] });
+      queryClient.invalidateQueries({ queryKey: ["budget", budgetId] });
+      queryClient.invalidateQueries();
+      
+      toast({ title: "Success", description: `Added PKR ${amount.toLocaleString()} to monthly budget` });
+      setExtraIncome("");
+      setExtraIncomeNote("");
+      setShowAddIncome(false);
+    } catch (err) {
+      toast({ title: "Error", description: "Failed to update budget", variant: "destructive" });
+    }
+  };
+
+  const handleChange = (categoryId: string, value: string) => {
+    setLocalAlloc((s) => ({ ...s, [categoryId]: { ...s[categoryId], allocatedAmount: value } }));
+  };
+
+  const handleSave = async () => {
+    if (!budgetId) return;
+    const totalAllocated = Object.values(localAlloc).reduce((sum, v) => sum + Number(v.allocatedAmount || 0), 0);
+    const monthlyBudget = summary?.monthlyBudget ?? Infinity;
+    if (totalAllocated > monthlyBudget) {
+      toast({ title: "Error", description: "Total allocations exceed monthly budget", variant: "destructive" });
+      return;
+    }
+    
+    try {
+      for (const categoryId of Object.keys(localAlloc)) {
+        const amount = localAlloc[categoryId].allocatedAmount || "0";
+        const existing = allocations.find((a) => a.categoryId === categoryId);
+
+        if (existing) {
+          if (Number(amount) === 0) {
+            await localStorageService.deleteBudgetAllocation(existing.id);
+          } else if (String(existing.allocatedAmount) !== String(amount)) {
+            await localStorageService.updateBudgetAllocation(existing.id, { allocatedAmount: amount });
+          }
+        } else {
+          if (Number(amount) > 0) {
+            await localStorageService.createBudgetAllocation({ budgetId, categoryId, allocatedAmount: amount });
+          }
+        }
+      }
+
+      const newAllocations: BudgetAllocation[] = Object.keys(localAlloc).map((categoryId) => {
+        const existing = allocations.find((a) => a.categoryId === categoryId);
+        return {
+          id: existing?.id ?? crypto.randomUUID(),
+          budgetId: budgetId,
+          categoryId,
+          allocatedAmount: localAlloc[categoryId].allocatedAmount,
+          createdAt: new Date(),
+        } as unknown as BudgetAllocation;
+      }).filter(a => Number(a.allocatedAmount) > 0);
+
+      queryClient.setQueryData(["allocations", budgetId], newAllocations);
+      queryClient.invalidateQueries({ queryKey: ["budget", budgetId, "summary"] });
+      queryClient.invalidateQueries({ queryKey: ["allocations", budgetId] });
+      queryClient.invalidateQueries({ queryKey: ["budget", budgetId, "categories-with-allocations"] });
+      queryClient.invalidateQueries({ queryKey: ["budget", budgetId, "expenses"] });
+
+      toast({ title: "Success", description: "Allocations updated successfully" });
+      navigate("/");
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to update allocations", variant: "destructive" });
+    }
+  };
+
+  const totalAllocated = Object.values(localAlloc).reduce((sum, v) => sum + Number(v.allocatedAmount || 0), 0);
+  const monthlyBudget = summary?.monthlyBudget ?? 0;
+  const remaining = Math.max(0, monthlyBudget - totalAllocated);
+  const overBudget = totalAllocated > monthlyBudget;
+  const allocationPercentage = monthlyBudget > 0 ? Math.min((totalAllocated / monthlyBudget) * 100, 100) : 0;
+
+  if (!budgetId) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="max-w-md mx-4">
+          <CardContent className="pt-6 text-center">
+            <p className="text-muted-foreground">No budget ID provided</p>
+            <Button onClick={() => navigate("/")} className="mt-4">Go to Dashboard</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background pb-8">
+      {/* Header */}
+      <header className="bg-card border-b border-border sticky top-0 z-40">
+        <div className="max-w-2xl mx-auto px-4 py-4">
+          <div className="flex items-center space-x-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/")} data-testid="button-back">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div>
+              <h1 className="font-semibold text-xl">Manage Budget</h1>
+              <p className="text-sm text-muted-foreground">Allocate your monthly budget</p>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+        {/* Budget Summary Card */}
+        <Card className="border-2 shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center space-x-2 text-lg">
+              <Wallet className="w-5 h-5 text-primary" />
+              <span>Budget Overview</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground mb-1">Monthly Budget</p>
+                <p className="text-lg font-bold text-primary">PKR {monthlyBudget.toLocaleString()}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground mb-1">Allocated</p>
+                <p className={`text-lg font-bold ${overBudget ? 'text-destructive' : 'text-blue-500'}`}>
+                  PKR {totalAllocated.toLocaleString()}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground mb-1">Remaining</p>
+                <p className={`text-lg font-bold ${overBudget ? 'text-destructive' : 'text-green-500'}`}>
+                  PKR {remaining.toLocaleString()}
+                </p>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Allocation Progress</span>
+                <span className={`font-medium ${overBudget ? 'text-destructive' : ''}`}>
+                  {allocationPercentage.toFixed(1)}%
+                </span>
+              </div>
+              <Progress value={allocationPercentage} className="h-2" />
+            </div>
+
+            {overBudget && (
+              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
+                <p className="text-sm text-destructive font-medium">
+                  ⚠️ Total allocations exceed monthly budget by PKR {(totalAllocated - monthlyBudget).toLocaleString()}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-2 gap-3">
+          <Button
+            variant="outline"
+            className="h-auto py-4 flex flex-col items-center space-y-2"
+            onClick={() => setShowAddIncome(!showAddIncome)}
+            data-testid="button-toggle-add-income"
+          >
+            <TrendingUp className="w-5 h-5 text-green-500" />
+            <span className="text-sm font-medium">Add Income</span>
+            {showAddIncome ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </Button>
+
+          <Button
+            variant="outline"
+            className="h-auto py-4 flex flex-col items-center space-y-2"
+            onClick={() => setShowCreateCategory(!showCreateCategory)}
+            data-testid="button-toggle-create-category"
+          >
+            <Plus className="w-5 h-5 text-blue-500" />
+            <span className="text-sm font-medium">New Category</span>
+            {showCreateCategory ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </Button>
+        </div>
+
+        {/* Add Income Section */}
+        {showAddIncome && (
+          <Card className="border-2 border-green-200 bg-green-50/50 dark:bg-green-950/10">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Add Extra Income</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <Label htmlFor="extra-income">Amount (PKR) *</Label>
+                <Input
+                  id="extra-income"
+                  type="number"
+                  placeholder="e.g. 5000"
+                  value={extraIncome}
+                  onChange={(e) => setExtraIncome(e.target.value)}
+                  data-testid="input-extra-income"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="extra-note">Note (optional)</Label>
+                <Input
+                  id="extra-note"
+                  placeholder="e.g. freelance project, bonus"
+                  value={extraIncomeNote}
+                  onChange={(e) => setExtraIncomeNote(e.target.value)}
+                  data-testid="input-extra-note"
+                  className="mt-1"
+                />
+              </div>
+              <div className="flex space-x-2 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowAddIncome(false);
+                    setExtraIncome("");
+                    setExtraIncomeNote("");
+                  }}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button onClick={handleAddExtraIncome} className="flex-1" data-testid="button-add-extra">
+                  Add Income
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Create Category Section */}
+        {showCreateCategory && (
+          <Card className="border-2 border-blue-200 bg-blue-50/50 dark:bg-blue-950/10">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Create New Category</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleCreateCategory} className="space-y-3">
+                <div>
+                  <Label htmlFor="categoryName">Category Name *</Label>
+                  <Input
+                    id="categoryName"
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    placeholder="e.g. Entertainment, Travel"
+                    data-testid="input-category-name"
+                    className="mt-1"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="categoryIcon">Icon *</Label>
+                  <Select value={newCategoryIcon} onValueChange={setNewCategoryIcon} required>
+                    <SelectTrigger data-testid="select-category-icon" className="mt-1">
+                      <SelectValue placeholder="Select an icon" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {iconOptions.map((option) => {
+                        const IconComponent = option.icon;
+                        return (
+                          <SelectItem key={option.value} value={option.value}>
+                            <div className="flex items-center space-x-2">
+                              <IconComponent className="w-4 h-4" />
+                              <span>{option.label}</span>
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="categoryColor">Color *</Label>
+                  <Select value={newCategoryColor} onValueChange={setNewCategoryColor} required>
+                    <SelectTrigger data-testid="select-category-color" className="mt-1">
+                      <SelectValue placeholder="Select a color" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {colorOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          <div className="flex items-center space-x-2">
+                            <div 
+                              className="w-4 h-4 rounded-full border" 
+                              style={{ backgroundColor: option.value }}
+                            ></div>
+                            <span>{option.label}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex space-x-2 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowCreateCategory(false);
+                      setNewCategoryName("");
+                      setNewCategoryIcon("");
+                      setNewCategoryColor("");
+                    }}
+                    className="flex-1"
+                    data-testid="button-cancel-category"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="flex-1"
+                    disabled={createCategoryMutation.isPending}
+                    data-testid="button-create-category"
+                  >
+                    {createCategoryMutation.isPending ? "Creating..." : "Create"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Category Allocations */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>Category Allocations</span>
+              <Badge variant="secondary">{categories.length} categories</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {categories.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground mb-4">No categories yet. Create your first category!</p>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowCreateCategory(true)}
+                >
+                  Create Category
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {categories.map((category, index) => {
+                  const allocated = Number(localAlloc[category.id]?.allocatedAmount || 0);
+                  const percentage = monthlyBudget > 0 ? (allocated / monthlyBudget) * 100 : 0;
+                  
+                  return (
+                    <div key={category.id}>
+                      {index > 0 && <Separator className="my-4" />}
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div 
+                              className="w-10 h-10 rounded-lg flex items-center justify-center"
+                              style={{ backgroundColor: `${category.color}20` }}
+                            >
+                              <span className="text-lg">{category.icon}</span>
+                            </div>
+                            <div>
+                              <p className="font-medium">{category.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {percentage > 0 ? `${percentage.toFixed(1)}% of budget` : 'Not allocated'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="w-32">
+                            <Label htmlFor={`alloc-${category.id}`} className="sr-only">
+                              Allocation for {category.name}
+                            </Label>
+                            <Input
+                              id={`alloc-${category.id}`}
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={localAlloc[category.id]?.allocatedAmount ?? "0"}
+                              onChange={(e) => handleChange(category.id, e.target.value)}
+                              data-testid={`input-alloc-${category.id}`}
+                              className="text-right font-medium"
+                              placeholder="0"
+                            />
+                          </div>
+                        </div>
+                        {allocated > 0 && (
+                          <Progress 
+                            value={Math.min(percentage, 100)} 
+                            className="h-1.5"
+                            style={{ 
+                              // @ts-ignore
+                              '--progress-background': category.color 
+                            }}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Action Buttons */}
+        <div className="sticky bottom-0 bg-background pt-4 pb-2 border-t">
+          <div className="flex space-x-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate("/")}
+              className="flex-1"
+              size="lg"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSave}
+              disabled={overBudget}
+              className="flex-1"
+              size="lg"
+            >
+              Save Allocations
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
