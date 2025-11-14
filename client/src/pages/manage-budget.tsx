@@ -17,6 +17,14 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 
+const iconMap = {
+  "shopping-cart": ShoppingCart,
+  "car": Car,
+  "file-text": FileText,
+  "zap": Zap,
+  "smile": Smile,
+};
+
 export default function ManageBudget() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -482,6 +490,7 @@ export default function ManageBudget() {
                 {categories.map((category, index) => {
                   const allocated = Number(localAlloc[category.id]?.allocatedAmount || 0);
                   const percentage = monthlyBudget > 0 ? (allocated / monthlyBudget) * 100 : 0;
+                  const IconComponent = iconMap[category.icon as keyof typeof iconMap] || Smile;
                   
                   return (
                     <div key={category.id}>
@@ -493,7 +502,7 @@ export default function ManageBudget() {
                               className="w-10 h-10 rounded-lg flex items-center justify-center"
                               style={{ backgroundColor: `${category.color}20` }}
                             >
-                              <span className="text-lg">{category.icon}</span>
+                              <IconComponent className="w-5 h-5" style={{ color: category.color }} />
                             </div>
                             <div>
                               <p className="font-medium">{category.name}</p>
