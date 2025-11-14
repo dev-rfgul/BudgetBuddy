@@ -6,7 +6,6 @@ import { useQuery } from "@tanstack/react-query";
 import { localStorageService } from "@/lib/localStorage";
 import { useExpenses, useDeleteExpense } from "@/hooks/use-expenses";
 import { type Expense, type Category } from "@/types";
-import ResetTransactionsModal from "@/components/reset-transactions-modal";
 import { ArrowLeft, Filter, X, ShoppingCart, Car, FileText, Zap, Smile, Trash2, Calendar, DollarSign, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -173,12 +172,6 @@ export default function Transactions() {
                 </p>
               </div>
             </div>
-            {transactionCount > 0 && !selectedCategoryId && (
-              <ResetTransactionsModal 
-                budgetId={budgetId} 
-                transactionCount={transactionCount}
-              />
-            )}
           </div>
         </div>
       </header>

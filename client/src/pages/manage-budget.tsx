@@ -20,6 +20,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { format, subDays, startOfDay, endOfDay, startOfWeek, endOfWeek, subWeeks } from "date-fns";
 import { useExpenses } from "@/hooks/use-expenses";
+import ResetTransactionsModal from "@/components/reset-transactions-modal";
 
 const iconMap = {
   "shopping-cart": ShoppingCart,
@@ -322,6 +323,18 @@ export default function ManageBudget() {
     );
   }, [categories, expenses]);
 
+  // Calculate current month transactions for reset functionality
+  const currentMonthTransactions = useMemo(() => {
+    if (!expenses) return 0;
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    return expenses.filter((e) => {
+      const d = new Date(e.date);
+      return d.getFullYear() === year && d.getMonth() === month;
+    }).length;
+  }, [expenses]);
+
   if (!budgetId) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -340,14 +353,22 @@ export default function ManageBudget() {
       {/* Header */}
       <header className="bg-card border-b border-border sticky top-0 z-40">
         <div className="max-w-2xl mx-auto px-4 py-4">
-          <div className="flex items-center space-x-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/")} data-testid="button-back">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1 className="font-semibold text-xl">Manage Budget</h1>
-              <p className="text-sm text-muted-foreground">Allocate your monthly budget</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Button variant="ghost" size="icon" onClick={() => navigate("/")} data-testid="button-back">
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+              <div>
+                <h1 className="font-semibold text-xl">Manage Budget</h1>
+                <p className="text-sm text-muted-foreground">Allocate your monthly budget</p>
+              </div>
             </div>
+            {currentMonthTransactions > 0 && budgetId && (
+              <ResetTransactionsModal 
+                budgetId={budgetId} 
+                transactionCount={currentMonthTransactions}
+              />
+            )}
           </div>
         </div>
       </header>
