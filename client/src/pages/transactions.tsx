@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
-import { format, subDays, startOfDay, endOfDay } from "date-fns";
+import { format, subDays, startOfDay, endOfDay, startOfWeek, endOfWeek, subWeeks } from "date-fns";
 
 const iconMap = {
   "shopping-cart": ShoppingCart,
@@ -35,7 +35,7 @@ export default function Transactions() {
   
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(initialCategoryId);
   const [sortBy, setSortBy] = useState<'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc'>('date-desc');
-  const [chartPeriod, setChartPeriod] = useState<'7days' | '14days' | '30days'>('7days');
+  const [chartPeriod, setChartPeriod] = useState<'day' | 'week' | 'month'>('day');
 
   const { data: expenses = [], isLoading } = useExpenses(budgetId || undefined);
   const { data: categories = [] } = useQuery<Category[]>({
@@ -101,41 +101,102 @@ export default function Transactions() {
     return Array.from(stats.entries()).map(([id, data]) => ({ categoryId: id, ...data }));
   }, [currentMonthExpenses, categories]);
 
-  // Calculate chart data - spending trends by category over time
+  // Calculate chart data - use same implementation as settings page (daily/weekly/monthly)
   const chartData = useMemo(() => {
-    const days = chartPeriod === '7days' ? 7 : chartPeriod === '14days' ? 14 : 30;
-    const today = startOfDay(new Date());
+    if (!currentMonthExpenses || currentMonthExpenses.length === 0 || categories.length === 0) return [];
+
+    // Get categories that have expenses
+    const categoriesWithExpenses = categories.filter(cat => 
+      currentMonthExpenses.some(exp => exp.categoryId === cat.id)
+    );
+
+    if (categoriesWithExpenses.length === 0) return [];
+
+    const now = new Date();
     const data: any[] = [];
 
-    // Create data points for each day
-    for (let i = days - 1; i >= 0; i--) {
-      const date = subDays(today, i);
-      const dayStart = startOfDay(date);
-      const dayEnd = endOfDay(date);
-      
-      const dayData: any = {
-        date: format(date, 'MMM d'),
-        fullDate: date,
-      };
-
-      // Calculate spending for each category on this day
-      categories.forEach((category) => {
-        const categoryExpenses = currentMonthExpenses.filter((exp) => {
-          const expDate = new Date(exp.date);
-          return exp.categoryId === category.id && expDate >= dayStart && expDate <= dayEnd;
-        });
+    if (chartPeriod === 'day') {
+      // Last 7 days
+      for (let i = 6; i >= 0; i--) {
+        const date = subDays(now, i);
+        const dayStart = startOfDay(date);
+        const dayEnd = endOfDay(date);
         
-        const total = categoryExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
-        dayData[category.id] = total;
-        dayData[`${category.id}_name`] = category.name;
-        dayData[`${category.id}_color`] = category.color;
-      });
+        const dayData: any = {
+          label: format(date, "EEE"),
+          fullDate: date,
+        };
 
-      data.push(dayData);
+        categoriesWithExpenses.forEach((category) => {
+          const categoryExpenses = currentMonthExpenses.filter((exp) => {
+            const expDate = new Date(exp.date);
+            return exp.categoryId === category.id && expDate >= dayStart && expDate <= dayEnd;
+          });
+          
+          const total = categoryExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
+          dayData[category.id] = total;
+        });
+
+        data.push(dayData);
+      }
+    } else if (chartPeriod === 'week') {
+      // Last 4 weeks
+      for (let i = 3; i >= 0; i--) {
+        const weekStart = startOfWeek(subWeeks(now, i), { weekStartsOn: 1 });
+        const weekEnd = endOfWeek(subWeeks(now, i), { weekStartsOn: 1 });
+        
+        const weekData: any = {
+          label: `W${4 - i}`,
+          fullDate: weekStart,
+        };
+
+        categoriesWithExpenses.forEach((category) => {
+          const categoryExpenses = currentMonthExpenses.filter((exp) => {
+            const expDate = new Date(exp.date);
+            return exp.categoryId === category.id && expDate >= weekStart && expDate <= weekEnd;
+          });
+
+          const total = categoryExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
+          weekData[category.id] = total;
+        });
+
+        data.push(weekData);
+      }
+    } else {
+      // Last 30 days
+      for (let i = 29; i >= 0; i--) {
+        const date = subDays(now, i);
+        const dayStart = startOfDay(date);
+        const dayEnd = endOfDay(date);
+        
+        const dayData: any = {
+          label: format(date, "d"),
+          fullDate: date,
+        };
+
+        categoriesWithExpenses.forEach((category) => {
+          const categoryExpenses = currentMonthExpenses.filter((exp) => {
+            const expDate = new Date(exp.date);
+            return exp.categoryId === category.id && expDate >= dayStart && expDate <= dayEnd;
+          });
+          
+          const total = categoryExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
+          dayData[category.id] = total;
+        });
+
+        data.push(dayData);
+      }
     }
 
     return data;
   }, [currentMonthExpenses, categories, chartPeriod]);
+
+  // Get categories that have expenses for the chart
+  const categoriesWithExpenses = useMemo(() => {
+    return categories.filter(cat => 
+      currentMonthExpenses.some(exp => exp.categoryId === cat.id)
+    );
+  }, [categories, currentMonthExpenses]);
 
   const handleDelete = async (expenseId: string) => {
     if (!budgetId) return;
@@ -208,9 +269,9 @@ export default function Transactions() {
                 </div>
                 <Tabs value={chartPeriod} onValueChange={(v) => setChartPeriod(v as typeof chartPeriod)} className="w-full sm:w-auto">
                   <TabsList className="h-8 p-0.5 bg-muted/50 w-full sm:w-auto">
-                    <TabsTrigger value="7days" className="text-[10px] sm:text-xs px-2 py-1 flex-1 sm:flex-none">7D</TabsTrigger>
-                    <TabsTrigger value="14days" className="text-[10px] sm:text-xs px-2 py-1 flex-1 sm:flex-none">14D</TabsTrigger>
-                    <TabsTrigger value="30days" className="text-[10px] sm:text-xs px-2 py-1 flex-1 sm:flex-none">30D</TabsTrigger>
+                    <TabsTrigger value="day" className="text-[10px] sm:text-xs px-2 py-1 flex-1 sm:flex-none">Daily</TabsTrigger>
+                    <TabsTrigger value="week" className="text-[10px] sm:text-xs px-2 py-1 flex-1 sm:flex-none">Weekly</TabsTrigger>
+                    <TabsTrigger value="month" className="text-[10px] sm:text-xs px-2 py-1 flex-1 sm:flex-none">Monthly</TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>
@@ -221,11 +282,11 @@ export default function Transactions() {
                   <LineChart data={chartData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.3} vertical={false} />
                     <XAxis 
-                      dataKey="date" 
+                      dataKey="label" 
                       tick={{ fontSize: 9, fill: '#6b7280' }}
                       tickLine={false}
                       axisLine={{ stroke: '#e5e7eb' }}
-                      interval={chartPeriod === '30days' ? 5 : chartPeriod === '14days' ? 2 : 0}
+                      interval={chartPeriod === 'month' ? 5 : chartPeriod === 'week' ? 0 : 0}
                       height={20}
                     />
                     <YAxis 
@@ -251,7 +312,13 @@ export default function Transactions() {
                       labelFormatter={(label, payload) => {
                         if (payload && payload[0]) {
                           const data = payload[0].payload;
-                          return format(data.fullDate, "MMM d");
+                          if (chartPeriod === 'day') {
+                            return format(data.fullDate, "EEEE, MMM d");
+                          } else if (chartPeriod === 'week') {
+                            return `Week of ${format(data.fullDate, "MMM d")}`;
+                          } else {
+                            return format(data.fullDate, "MMM d, yyyy");
+                          }
                         }
                         return label;
                       }}
@@ -259,12 +326,12 @@ export default function Transactions() {
                     <Legend 
                       wrapperStyle={{ fontSize: '9px', paddingTop: '8px' }}
                       formatter={(value) => {
-                        const category = categories.find(c => c.id === value);
+                        const category = categoriesWithExpenses.find(c => c.id === value);
                         return category?.name || value;
                       }}
                       iconSize={8}
                     />
-                    {categories.slice(0, 5).map((category) => (
+                    {categoriesWithExpenses.map((category) => (
                       <Line
                         key={category.id}
                         type="monotone"
@@ -280,11 +347,7 @@ export default function Transactions() {
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-              {categories.length > 5 && (
-                <p className="text-[9px] text-muted-foreground text-center mt-2">
-                  Showing top 5 categories • {categories.length - 5} more not displayed
-                </p>
-              )}
+            
             </CardContent>
           </Card>
         )}
