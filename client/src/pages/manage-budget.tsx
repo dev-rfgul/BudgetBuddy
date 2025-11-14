@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,10 +12,14 @@ import { localStorageService } from "@/lib/localStorage";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Category, BudgetAllocation } from "@/types";
-import { ShoppingCart, Car, FileText, Zap, Smile, ArrowLeft, Plus, Wallet, TrendingUp, ChevronDown, ChevronUp } from "lucide-react";
+import { ShoppingCart, Car, FileText, Zap, Smile, ArrowLeft, Plus, Wallet, TrendingUp, ChevronDown, ChevronUp, BarChart3 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
+import { format, subDays, startOfDay, endOfDay, startOfWeek, endOfWeek, subWeeks } from "date-fns";
+import { useExpenses } from "@/hooks/use-expenses";
 
 const iconMap = {
   "shopping-cart": ShoppingCart,
@@ -51,7 +55,10 @@ export default function ManageBudget() {
   const [extraIncomeNote, setExtraIncomeNote] = useState("");
   const [showAddIncome, setShowAddIncome] = useState(false);
   const [showCreateCategory, setShowCreateCategory] = useState(false);
+  const [chartPeriod, setChartPeriod] = useState<'day' | 'week' | 'month'>('day');
   const updateBudget = useUpdateBudget();
+
+  const { data: expenses = [] } = useExpenses(budgetId || undefined);
 
   const iconOptions = [
     { value: "shopping-cart", label: "Shopping Cart", icon: ShoppingCart },
@@ -218,6 +225,103 @@ export default function ManageBudget() {
   const overBudget = totalAllocated > monthlyBudget;
   const allocationPercentage = monthlyBudget > 0 ? Math.min((totalAllocated / monthlyBudget) * 100, 100) : 0;
 
+  // Calculate chart data - only for categories with expenses
+  const chartData = useMemo(() => {
+    if (!expenses || expenses.length === 0 || categories.length === 0) return [];
+
+    // Get categories that have expenses
+    const categoriesWithExpenses = categories.filter(cat => 
+      expenses.some(exp => exp.categoryId === cat.id)
+    );
+
+    if (categoriesWithExpenses.length === 0) return [];
+
+    const now = new Date();
+    const data: any[] = [];
+
+    if (chartPeriod === 'day') {
+      // Last 7 days
+      for (let i = 6; i >= 0; i--) {
+        const date = subDays(now, i);
+        const dayStart = startOfDay(date);
+        const dayEnd = endOfDay(date);
+        
+        const dayData: any = {
+          label: format(date, "EEE"),
+          fullDate: date,
+        };
+
+        categoriesWithExpenses.forEach((category) => {
+          const categoryExpenses = expenses.filter((exp) => {
+            const expDate = new Date(exp.date);
+            return exp.categoryId === category.id && expDate >= dayStart && expDate <= dayEnd;
+          });
+          
+          const total = categoryExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
+          dayData[category.id] = total;
+        });
+
+        data.push(dayData);
+      }
+    } else if (chartPeriod === 'week') {
+      // Last 4 weeks
+      for (let i = 3; i >= 0; i--) {
+        const weekStart = startOfWeek(subWeeks(now, i), { weekStartsOn: 1 });
+        const weekEnd = endOfWeek(subWeeks(now, i), { weekStartsOn: 1 });
+        
+        const weekData: any = {
+          label: `W${4 - i}`,
+          fullDate: weekStart,
+        };
+
+        categoriesWithExpenses.forEach((category) => {
+          const categoryExpenses = expenses.filter((exp) => {
+            const expDate = new Date(exp.date);
+            return exp.categoryId === category.id && expDate >= weekStart && expDate <= weekEnd;
+          });
+
+          const total = categoryExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
+          weekData[category.id] = total;
+        });
+
+        data.push(weekData);
+      }
+    } else {
+      // Last 30 days
+      for (let i = 29; i >= 0; i--) {
+        const date = subDays(now, i);
+        const dayStart = startOfDay(date);
+        const dayEnd = endOfDay(date);
+        
+        const dayData: any = {
+          label: format(date, "d"),
+          fullDate: date,
+        };
+
+        categoriesWithExpenses.forEach((category) => {
+          const categoryExpenses = expenses.filter((exp) => {
+            const expDate = new Date(exp.date);
+            return exp.categoryId === category.id && expDate >= dayStart && expDate <= dayEnd;
+          });
+          
+          const total = categoryExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
+          dayData[category.id] = total;
+        });
+
+        data.push(dayData);
+      }
+    }
+
+    return data;
+  }, [expenses, categories, chartPeriod]);
+
+  // Get categories that have expenses for the chart
+  const categoriesWithExpenses = useMemo(() => {
+    return categories.filter(cat => 
+      expenses.some(exp => exp.categoryId === cat.id)
+    );
+  }, [categories, expenses]);
+
   if (!budgetId) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -296,6 +400,104 @@ export default function ManageBudget() {
             )}
           </CardContent>
         </Card>
+
+        {/* Spending Trends Chart */}
+        {categoriesWithExpenses.length > 0 && chartData.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+                <div className="flex items-center space-x-2">
+                  <BarChart3 className="w-4 h-4 text-primary flex-shrink-0" />
+                  <CardTitle className="text-base sm:text-lg">Spending Trends</CardTitle>
+                </div>
+                <Tabs value={chartPeriod} onValueChange={(v) => setChartPeriod(v as typeof chartPeriod)} className="w-full sm:w-auto">
+                  <TabsList className="h-8 p-0.5 bg-muted/50 w-full sm:w-auto">
+                    <TabsTrigger value="day" className="text-[10px] sm:text-xs px-2 py-1 flex-1 sm:flex-none">Daily</TabsTrigger>
+                    <TabsTrigger value="week" className="text-[10px] sm:text-xs px-2 py-1 flex-1 sm:flex-none">Weekly</TabsTrigger>
+                    <TabsTrigger value="month" className="text-[10px] sm:text-xs px-2 py-1 flex-1 sm:flex-none">Monthly</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
+            </CardHeader>
+            <CardContent className="px-2 sm:px-6">
+              <div className="w-full overflow-x-auto">
+                <ResponsiveContainer width="100%" height={280} className="sm:h-[300px]">
+                  <LineChart data={chartData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.3} vertical={false} />
+                    <XAxis 
+                      dataKey="label" 
+                      tick={{ fontSize: 9, fill: '#6b7280' }}
+                      tickLine={false}
+                      axisLine={{ stroke: '#e5e7eb' }}
+                      interval={chartPeriod === 'month' ? 5 : chartPeriod === 'week' ? 0 : 0}
+                      height={20}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 9, fill: '#6b7280' }}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(value) => value === 0 ? '0' : `${(value / 1000).toFixed(0)}k`}
+                      width={30}
+                    />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '6px',
+                        fontSize: '10px',
+                        padding: '6px 8px',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                      }}
+                      formatter={(value: number, name: string) => {
+                        const category = categoriesWithExpenses.find(c => c.id === name);
+                        return [`₨${value.toLocaleString()}`, category?.name || name];
+                      }}
+                      labelFormatter={(label, payload) => {
+                        if (payload && payload[0]) {
+                          const data = payload[0].payload;
+                          if (chartPeriod === 'day') {
+                            return format(data.fullDate, "EEEE, MMM d");
+                          } else if (chartPeriod === 'week') {
+                            return `Week of ${format(data.fullDate, "MMM d")}`;
+                          } else {
+                            return format(data.fullDate, "MMM d, yyyy");
+                          }
+                        }
+                        return label;
+                      }}
+                    />
+                    <Legend 
+                      wrapperStyle={{ fontSize: '9px', paddingTop: '8px' }}
+                      formatter={(value) => {
+                        const category = categoriesWithExpenses.find(c => c.id === value);
+                        return category?.name || value;
+                      }}
+                      iconSize={8}
+                    />
+                    {categoriesWithExpenses.map((category) => (
+                      <Line
+                        key={category.id}
+                        type="monotone"
+                        dataKey={category.id}
+                        stroke={category.color}
+                        strokeWidth={2}
+                        dot={{ fill: category.color, strokeWidth: 1.5, r: 2, stroke: '#ffffff' }}
+                        activeDot={{ r: 4, fill: category.color, stroke: '#ffffff', strokeWidth: 2 }}
+                        name={category.name}
+                        connectNulls
+                      />
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              <p className="text-[9px] sm:text-[10px] text-muted-foreground text-center mt-2">
+                {chartPeriod === 'day' && "Daily spending for the last 7 days"}
+                {chartPeriod === 'week' && "Weekly spending for the last 4 weeks"}
+                {chartPeriod === 'month' && "Daily spending for the last 30 days"}
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-3">
