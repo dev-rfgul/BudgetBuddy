@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { storageService } from "@/lib/storage";
 import { useToast } from "@/hooks/use-toast";
-import { Download, Upload, Loader2 } from "lucide-react";
+import { Download, Upload, Loader2, FileText, FileSpreadsheet } from "lucide-react";
+import { generateCSV, downloadCSV, generatePDF } from "@/lib/export-utils";
 
 export default function DataManagement() {
     const { toast } = useToast();
@@ -31,6 +32,50 @@ export default function DataManagement() {
             toast({
                 title: "Export Failed",
                 description: "Could not export data.",
+                variant: "destructive",
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleExportCSV = async () => {
+        try {
+            setLoading(true);
+            const expenses = await storageService.getAllExpenses();
+            const categories = await storageService.getCategories();
+            const csv = generateCSV(expenses, categories);
+            downloadCSV(csv, `budget-buddy-expenses-${new Date().toISOString().slice(0, 10)}.csv`);
+            toast({
+                title: "Export Successful",
+                description: "Expenses exported to CSV.",
+            });
+        } catch (error) {
+            toast({
+                title: "Export Failed",
+                description: "Could not export to CSV.",
+                variant: "destructive",
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleExportPDF = async () => {
+        try {
+            setLoading(true);
+            const expenses = await storageService.getAllExpenses();
+            const categories = await storageService.getCategories();
+            generatePDF(expenses, categories);
+            toast({
+                title: "Export Successful",
+                description: "Expenses exported to PDF.",
+            });
+        } catch (error) {
+            console.error(error);
+            toast({
+                title: "Export Failed",
+                description: "Could not export to PDF.",
                 variant: "destructive",
             });
         } finally {
@@ -76,10 +121,18 @@ export default function DataManagement() {
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="flex flex-col gap-4">
-                    <Button onClick={handleExport} disabled={loading} variant="outline" className="w-full justify-start">
-                        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                        Export Data
-                    </Button>
+
+
+                    <div className="grid grid-cols-2 gap-2">
+                        <Button onClick={handleExportCSV} disabled={loading} variant="outline" className="w-full justify-start">
+                            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileSpreadsheet className="mr-2 h-4 w-4" />}
+                            Export CSV
+                        </Button>
+                        <Button onClick={handleExportPDF} disabled={loading} variant="outline" className="w-full justify-start">
+                            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
+                            Export PDF
+                        </Button>
+                    </div>
 
                     <div className="relative">
                         <input
@@ -89,10 +142,6 @@ export default function DataManagement() {
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                             disabled={loading}
                         />
-                        <Button disabled={loading} variant="outline" className="w-full justify-start">
-                            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                            Import Data
-                        </Button>
                     </div>
                 </div>
             </CardContent>

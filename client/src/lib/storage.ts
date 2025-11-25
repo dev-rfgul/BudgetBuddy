@@ -293,6 +293,11 @@ class StorageService {
   }
 
   // Expense operations
+  async getAllExpenses(): Promise<Expense[]> {
+    const db = await initDB();
+    return db.getAll('expenses');
+  }
+
   async getExpenses(budgetId: string): Promise<Expense[]> {
     const db = await initDB();
     return db.getAllFromIndex('expenses', 'by-budget', budgetId);
