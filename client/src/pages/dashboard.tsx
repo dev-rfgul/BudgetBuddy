@@ -17,12 +17,15 @@ import { type CategoryWithAllocation } from "@/types";
 
 const COLORS = ['#2ECC71', '#3498DB', '#E74C3C', '#F39C12', '#9B59B6', '#1ABC9C', '#E67E22', '#8E44AD'];
 
+import { useSettings } from "@/hooks/use-settings";
+
 export default function Dashboard() {
+  const { data: settings } = useSettings();
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showCategoryChart, setShowCategoryChart] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<CategoryWithAllocation | null>(null);
   const [, navigate] = useLocation();
-  
+
   const { data: budget, isLoading: budgetLoading } = useCurrentBudget();
   const { data: summary, isLoading: summaryLoading } = useBudgetSummary(budget?.id);
   const { data: categories = [], isLoading: categoriesLoading } = useCategoriesWithAllocations(budget?.id);
@@ -93,7 +96,7 @@ export default function Dashboard() {
 
       {/* Quick Add Expense */}
       <section className="px-4 mb-6 mt-6">
-        <Button 
+        <Button
           onClick={() => setShowAddExpense(true)}
           className="w-full py-4 px-6 font-medium flex items-center justify-center space-x-2"
           data-testid="button-quick-add"
@@ -111,7 +114,7 @@ export default function Dashboard() {
             Manage
           </Button>
         </div>
-        
+
         {categoriesLoading ? (
           <div className="space-y-3">
             {[1, 2, 3, 4].map((i) => (
@@ -160,7 +163,7 @@ export default function Dashboard() {
             View All
           </Button>
         </div>
-        
+
         {expensesLoading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
@@ -171,9 +174,9 @@ export default function Dashboard() {
           <Card>
             <CardContent className="pt-6 text-center">
               <p className="text-muted-foreground">No transactions yet.</p>
-              <Button 
+              <Button
                 onClick={() => setShowAddExpense(true)}
-                variant="outline" 
+                variant="outline"
                 className="mt-4"
                 data-testid="button-add-first-expense"
               >
@@ -199,15 +202,15 @@ export default function Dashboard() {
                           <p className="text-sm text-muted-foreground">{expense.description}</p>
                         ) : null}
                         <p className="text-sm text-muted-foreground">
-                          {new Date(expense.date).toLocaleDateString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric' 
+                          {new Date(expense.date).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric'
                           })}
                         </p>
                       </div>
                     </div>
                     <p className="font-semibold" data-testid={`transaction-amount-${expense.id}`}>
-                      -PKR {Number(expense.amount).toLocaleString()}
+                      -{settings?.currency || 'PKR'} {Number(expense.amount).toLocaleString()}
                     </p>
                   </div>
                 </CardContent>
@@ -220,8 +223,8 @@ export default function Dashboard() {
 
       {/* Add Expense Modal */}
       {budget && (
-        <AddExpenseModal 
-          open={showAddExpense} 
+        <AddExpenseModal
+          open={showAddExpense}
           onOpenChange={setShowAddExpense}
           budgetId={budget.id}
         />

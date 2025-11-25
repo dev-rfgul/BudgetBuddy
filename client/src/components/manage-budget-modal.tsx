@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useUpdateBudget } from "@/hooks/use-budget";
 import { useBudgetSummary } from "@/hooks/use-budget";
-import { localStorageService } from "@/lib/localStorage";
+import { storageService } from "@/lib/storage";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Category, BudgetAllocation } from "@/types";
@@ -24,13 +24,13 @@ export default function ManageBudgetModal({ open, onOpenChange, budgetId }: Mana
   const { data: summary } = useBudgetSummary(budgetId);
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ["categories"],
-    queryFn: async () => await localStorageService.getCategories(),
+    queryFn: async () => await storageService.getCategories(),
   });
 
   const { data: allocations = [] } = useQuery<BudgetAllocation[]>({
     queryKey: ["allocations", budgetId],
     enabled: !!budgetId,
-    queryFn: async () => (budgetId ? await localStorageService.getBudgetAllocations(budgetId) : []),
+    queryFn: async () => (budgetId ? await storageService.getBudgetAllocations(budgetId) : []),
   });
 
   const [localAlloc, setLocalAlloc] = useState<Record<string, { id?: string; allocatedAmount: string }>>({});
@@ -62,7 +62,7 @@ export default function ManageBudgetModal({ open, onOpenChange, budgetId }: Mana
 
   const createCategoryMutation = useMutation({
     mutationFn: async (categoryData: { name: string; icon: string; color: string }) => {
-      return await localStorageService.createCategory({ ...categoryData, isDefault: false });
+      return await storageService.createCategory({ ...categoryData, isDefault: false });
     },
     onSuccess: (created: Category) => {
       // update categories cache immediately
@@ -79,9 +79,9 @@ export default function ManageBudgetModal({ open, onOpenChange, budgetId }: Mana
       setNewCategoryIcon("");
       setNewCategoryColor("");
       setIsCreating(false);
-  queryClient.invalidateQueries({ queryKey: ["categories"] });
-  // also refresh budget-related derived queries in case user created category during a session
-  queryClient.invalidateQueries({ queryKey: ["budget"] });
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      // also refresh budget-related derived queries in case user created category during a session
+      queryClient.invalidateQueries({ queryKey: ["budget"] });
       toast({ title: "Success", description: "Category created successfully!" });
     },
   });
@@ -123,8 +123,8 @@ export default function ManageBudgetModal({ open, onOpenChange, budgetId }: Mana
       const current = summary?.monthlyBudget ?? 0;
       const newTotal = current + amount;
       await updateBudget.mutateAsync({ id: budgetId, data: { monthlyIncome: String(newTotal) } });
-  // record income entry with optional note
-  await localStorageService.createIncomeRecord({ budgetId, amount: String(amount), note: extraIncomeNote });
+      // record income entry with optional note
+      await storageService.createIncomeRecord({ budgetId, amount: String(amount), note: extraIncomeNote });
       // optimistic cache updates so UI reflects the new monthly budget immediately
       queryClient.setQueryData(["budget", budgetId, "summary"], (old: any) => {
         if (!old) return old;
@@ -141,11 +141,11 @@ export default function ManageBudgetModal({ open, onOpenChange, budgetId }: Mana
       // also invalidate so summary and UI update from authoritative source
       queryClient.invalidateQueries({ queryKey: ["budget", budgetId, "summary"] });
       queryClient.invalidateQueries({ queryKey: ["budget", budgetId] });
-  // refresh all queries to ensure any current-month budget cache keys are updated
-  queryClient.invalidateQueries();
-  toast({ title: "Success", description: `Added PKR ${amount.toLocaleString()} to monthly budget` });
+      // refresh all queries to ensure any current-month budget cache keys are updated
+      queryClient.invalidateQueries();
+      toast({ title: "Success", description: `Added PKR ${amount.toLocaleString()} to monthly budget` });
       setExtraIncome("");
-  setExtraIncomeNote("");
+      setExtraIncomeNote("");
     } catch (err) {
       toast({ title: "Error", description: "Failed to update budget", variant: "destructive" });
     }
@@ -171,13 +171,13 @@ export default function ManageBudgetModal({ open, onOpenChange, budgetId }: Mana
 
         if (existing) {
           if (Number(amount) === 0) {
-            await localStorageService.deleteBudgetAllocation(existing.id);
+            await storageService.deleteBudgetAllocation(existing.id);
           } else if (String(existing.allocatedAmount) !== String(amount)) {
-            await localStorageService.updateBudgetAllocation(existing.id, { allocatedAmount: amount });
+            await storageService.updateBudgetAllocation(existing.id, { allocatedAmount: amount });
           }
         } else {
           if (Number(amount) > 0) {
-            await localStorageService.createBudgetAllocation({ budgetId, categoryId, allocatedAmount: amount });
+            await storageService.createBudgetAllocation({ budgetId, categoryId, allocatedAmount: amount });
           }
         }
       }
@@ -195,13 +195,13 @@ export default function ManageBudgetModal({ open, onOpenChange, budgetId }: Mana
       }).filter(a => Number(a.allocatedAmount) > 0);
 
       queryClient.setQueryData(["allocations", budgetId], newAllocations);
-  queryClient.invalidateQueries({ queryKey: ["budget", budgetId, "summary"] });
-  queryClient.invalidateQueries({ queryKey: ["allocations", budgetId] });
-  // ensure dashboard derived queries refresh
-  queryClient.invalidateQueries({ queryKey: ["budget", budgetId, "categories-with-allocations"] });
-  queryClient.invalidateQueries({ queryKey: ["budget", budgetId, "expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["budget", budgetId, "summary"] });
+      queryClient.invalidateQueries({ queryKey: ["allocations", budgetId] });
+      // ensure dashboard derived queries refresh
+      queryClient.invalidateQueries({ queryKey: ["budget", budgetId, "categories-with-allocations"] });
+      queryClient.invalidateQueries({ queryKey: ["budget", budgetId, "expenses"] });
 
-  toast({ title: "Success", description: "Allocations updated" });
+      toast({ title: "Success", description: "Allocations updated" });
       onOpenChange(false);
     } catch (error) {
       toast({ title: "Error", description: "Failed to update allocations", variant: "destructive" });
@@ -275,67 +275,67 @@ export default function ManageBudgetModal({ open, onOpenChange, budgetId }: Mana
 
             {showCreateCategory && (
               <form onSubmit={handleCreateCategory} className="space-y-3 p-2 border border-border rounded">
-              <div>
-                <Label htmlFor="categoryName">Category Name *</Label>
-                <Input
-                  id="categoryName"
-                  value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
-                  placeholder="e.g. Entertainment"
-                  data-testid="input-category-name"
-                  required
-                />
-              </div>
+                <div>
+                  <Label htmlFor="categoryName">Category Name *</Label>
+                  <Input
+                    id="categoryName"
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    placeholder="e.g. Entertainment"
+                    data-testid="input-category-name"
+                    required
+                  />
+                </div>
 
-              <div>
-                <Label htmlFor="categoryIcon">Icon *</Label>
-                <Select value={newCategoryIcon} onValueChange={setNewCategoryIcon} required>
-                  <SelectTrigger data-testid="select-category-icon">
-                    <SelectValue placeholder="Select an icon" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {iconOptions.map((option) => {
-                      const IconComponent = option.icon;
-                      return (
+                <div>
+                  <Label htmlFor="categoryIcon">Icon *</Label>
+                  <Select value={newCategoryIcon} onValueChange={setNewCategoryIcon} required>
+                    <SelectTrigger data-testid="select-category-icon">
+                      <SelectValue placeholder="Select an icon" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {iconOptions.map((option) => {
+                        const IconComponent = option.icon;
+                        return (
+                          <SelectItem key={option.value} value={option.value}>
+                            <div className="flex items-center space-x-2">
+                              <IconComponent className="w-4 h-4" />
+                              <span>{option.label}</span>
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="categoryColor">Color *</Label>
+                  <Select value={newCategoryColor} onValueChange={setNewCategoryColor} required>
+                    <SelectTrigger data-testid="select-category-color">
+                      <SelectValue placeholder="Select a color" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {colorOptions.map((option) => (
                         <SelectItem key={option.value} value={option.value}>
                           <div className="flex items-center space-x-2">
-                            <IconComponent className="w-4 h-4" />
+                            <div
+                              className="w-4 h-4 rounded-full"
+                              style={{ backgroundColor: option.value }}
+                            ></div>
                             <span>{option.label}</span>
                           </div>
                         </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div>
-                <Label htmlFor="categoryColor">Color *</Label>
-                <Select value={newCategoryColor} onValueChange={setNewCategoryColor} required>
-                  <SelectTrigger data-testid="select-category-color">
-                    <SelectValue placeholder="Select a color" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {colorOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        <div className="flex items-center space-x-2">
-                          <div 
-                            className="w-4 h-4 rounded-full" 
-                            style={{ backgroundColor: option.value }}
-                          ></div>
-                          <span>{option.label}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex space-x-3 pt-2">
-                <Button type="button" variant="outline" onClick={() => { setNewCategoryName(""); setNewCategoryIcon(""); setNewCategoryColor(""); }} className="flex-1" data-testid="button-cancel-category">Cancel</Button>
-                <Button type="submit" className="flex-1" disabled={createCategoryMutation.isPending} data-testid="button-create-category">{createCategoryMutation.isPending ? "Creating..." : "Create Category"}</Button>
-              </div>
-            </form>
+                <div className="flex space-x-3 pt-2">
+                  <Button type="button" variant="outline" onClick={() => { setNewCategoryName(""); setNewCategoryIcon(""); setNewCategoryColor(""); }} className="flex-1" data-testid="button-cancel-category">Cancel</Button>
+                  <Button type="submit" className="flex-1" disabled={createCategoryMutation.isPending} data-testid="button-create-category">{createCategoryMutation.isPending ? "Creating..." : "Create Category"}</Button>
+                </div>
+              </form>
             )}
             {categories.map((category) => (
               <div key={category.id} className="flex items-center justify-between">

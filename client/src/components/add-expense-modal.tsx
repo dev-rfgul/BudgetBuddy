@@ -9,7 +9,7 @@ import { useCreateExpense } from "@/hooks/use-expenses";
 import { useQuery } from "@tanstack/react-query";
 import { useCategoriesWithAllocations } from "@/hooks/use-expenses";
 import { useToast } from "@/hooks/use-toast";
-import { localStorageService } from "@/lib/localStorage";
+import { storageService } from "@/lib/storage";
 import { type Category } from "@/types";
 
 interface AddExpenseModalProps {
@@ -23,10 +23,10 @@ export default function AddExpenseModal({ open, onOpenChange, budgetId }: AddExp
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  
+
   const { toast } = useToast();
   const createExpense = useCreateExpense();
-  
+
   // Prefer categories that belong to this budget and have allocations
   const { data: categoriesWithAllocations = [] } = useCategoriesWithAllocations(budgetId);
 
@@ -35,7 +35,7 @@ export default function AddExpenseModal({ open, onOpenChange, budgetId }: AddExp
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!amount || !categoryId) {
       toast({
         title: "Error",
@@ -82,7 +82,7 @@ export default function AddExpenseModal({ open, onOpenChange, budgetId }: AddExp
         <DialogHeader>
           <DialogTitle>Add Expense</DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="amount">Amount *</Label>
@@ -101,7 +101,7 @@ export default function AddExpenseModal({ open, onOpenChange, budgetId }: AddExp
               />
             </div>
           </div>
-          
+
           <div>
             <Label htmlFor="category">Category *</Label>
             <Select value={categoryId} onValueChange={setCategoryId} required>
@@ -117,7 +117,7 @@ export default function AddExpenseModal({ open, onOpenChange, budgetId }: AddExp
               </SelectContent>
             </Select>
           </div>
-          
+
           <div>
             <Label htmlFor="description">Description (optional)</Label>
             <Input
@@ -129,7 +129,7 @@ export default function AddExpenseModal({ open, onOpenChange, budgetId }: AddExp
               data-testid="input-description"
             />
           </div>
-          
+
           <div>
             <Label htmlFor="date">Date</Label>
             <Input
@@ -140,19 +140,19 @@ export default function AddExpenseModal({ open, onOpenChange, budgetId }: AddExp
               data-testid="input-date"
             />
           </div>
-          
+
           <div className="flex space-x-3 pt-4">
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               onClick={() => onOpenChange(false)}
               className="flex-1"
               data-testid="button-cancel"
             >
               Cancel
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="flex-1"
               disabled={createExpense.isPending}
               data-testid="button-add-expense"

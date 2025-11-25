@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { localStorageService } from "@/lib/localStorage";
+import { storageService } from "@/lib/storage";
 import { type Expense, type CategoryWithAllocation } from "@/types";
 
 export function useExpenses(budgetId: string | undefined) {
@@ -8,7 +8,7 @@ export function useExpenses(budgetId: string | undefined) {
     queryKey: ["budget", budgetId, "expenses"],
     queryFn: async () => {
       if (!budgetId) throw new Error("Budget ID is required");
-      return await localStorageService.getExpenses(budgetId);
+      return await storageService.getExpenses(budgetId);
     },
     enabled: !!budgetId,
   });
@@ -19,24 +19,33 @@ export function useCategoriesWithAllocations(budgetId: string | undefined) {
     queryKey: ["budget", budgetId, "categories-with-allocations"],
     queryFn: async () => {
       if (!budgetId) throw new Error("Budget ID is required");
-      return await localStorageService.getCategoriesWithAllocations(budgetId);
+      return await storageService.getCategoriesWithAllocations(budgetId);
     },
     enabled: !!budgetId,
   });
 }
 
+export function useCategories() {
+  return useQuery({
+    queryKey: ["categories"],
+    queryFn: async () => {
+      return await storageService.getCategories();
+    },
+  });
+}
+
 export function useCreateExpense() {
   return useMutation({
-    mutationFn: async ({ budgetId, expenseData }: { 
-      budgetId: string; 
-      expenseData: { 
-        amount: string; 
-        description: string; 
-        categoryId: string; 
-        date: string; 
-      } 
+    mutationFn: async ({ budgetId, expenseData }: {
+      budgetId: string;
+      expenseData: {
+        amount: string;
+        description: string;
+        categoryId: string;
+        date: string;
+      }
     }) => {
-      return await localStorageService.createExpense({
+      return await storageService.createExpense({
         ...expenseData,
         budgetId,
       });
@@ -52,13 +61,24 @@ export function useCreateExpense() {
 export function useDeleteExpense() {
   return useMutation({
     mutationFn: async ({ expenseId, budgetId }: { expenseId: string; budgetId: string }) => {
-      await localStorageService.deleteExpense(expenseId);
+      await storageService.deleteExpense(expenseId);
       return { success: true };
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["budget", variables.budgetId, "expenses"] });
       queryClient.invalidateQueries({ queryKey: ["budget", variables.budgetId, "categories-with-allocations"] });
       queryClient.invalidateQueries({ queryKey: ["budget", variables.budgetId, "summary"] });
+    },
+  });
+}
+
+export function useCreateCategory() {
+  return useMutation({
+    mutationFn: async (categoryData: { name: string; icon: string; color: string; isDefault?: boolean }) => {
+      return await storageService.createCategory(categoryData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
     },
   });
 }

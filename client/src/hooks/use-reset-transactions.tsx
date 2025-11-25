@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { localStorageService } from "@/lib/localStorage";
+import { storageService } from "@/lib/storage";
 
 interface ResetTransactionsParams {
   budgetId: string;
@@ -12,7 +12,7 @@ export function useResetTransactions() {
 
   return useMutation({
     mutationFn: async ({ budgetId }: ResetTransactionsParams) => {
-      await localStorageService.resetBudgetExpenses(budgetId);
+      await storageService.resetBudgetExpenses(budgetId);
       return { success: true };
     },
     onSuccess: (_, { budgetId }) => {
@@ -20,7 +20,7 @@ export function useResetTransactions() {
       queryClient.invalidateQueries({ queryKey: ["expenses", budgetId] });
       queryClient.invalidateQueries({ queryKey: ["categories-with-allocations", budgetId] });
       queryClient.invalidateQueries({ queryKey: ["budget-summary", budgetId] });
-      
+
       toast({
         title: "Success",
         description: "All transactions have been reset for this month",

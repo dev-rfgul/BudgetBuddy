@@ -75,3 +75,31 @@ export interface InsertExpense {
   budgetId: string;
   date: Date;
 }
+
+export interface RecurringExpense {
+  id: string;
+  amount: string;
+  description: string;
+  categoryId: string;
+  frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  startDate: Date;
+  lastProcessed: Date | null;
+  active: boolean;
+  createdAt: Date;
+}
+
+export interface SavingsGoal {
+  id: string;
+  name: string;
+  targetAmount: string;
+  currentAmount: string;
+  targetDate: Date | null;
+  icon: string;
+  color: string;
+  createdAt: Date;
+}
+
+export interface AppSettings {
+  currency: string;
+  theme: 'light' | 'dark' | 'system';
+}

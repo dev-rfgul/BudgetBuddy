@@ -11,7 +11,7 @@ import { useCreateBudget } from "@/hooks/use-budget";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { localStorageService } from "@/lib/localStorage";
+import { storageService } from "@/lib/storage";
 import { type Category } from "@/types";
 // Currency symbol replaced inline with 'PKR'
 
@@ -35,7 +35,7 @@ export default function BudgetSetup() {
   const [step, setStep] = useState(1);
   const [monthlyIncome, setMonthlyIncome] = useState("");
   const [budget, setBudget] = useState<any>(null);
-  const [allocations, setAllocations] = useState<{[key: string]: string}>({});
+  const [allocations, setAllocations] = useState<{ [key: string]: string }>({});
   const [showCreateCategory, setShowCreateCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryIcon, setNewCategoryIcon] = useState("");
@@ -46,13 +46,13 @@ export default function BudgetSetup() {
 
   const { data: categories = [], refetch: refetchCategories } = useQuery<Category[]>({
     queryKey: ["categories"],
-    queryFn: async () => await localStorageService.getCategories(),
+    queryFn: async () => await storageService.getCategories(),
     enabled: step === 2,
   });
 
   const createCategoryMutation = useMutation({
     mutationFn: async (categoryData: { name: string; icon: string; color: string }) => {
-      return await localStorageService.createCategory({
+      return await storageService.createCategory({
         ...categoryData,
         isDefault: false,
       });
@@ -72,9 +72,9 @@ export default function BudgetSetup() {
   });
 
   const createAllocationsMutation = useMutation({
-    mutationFn: async (allocationData: { budgetId: string; allocations: {categoryId: string; amount: string}[] }) => {
-      const promises = allocationData.allocations.map(allocation => 
-        localStorageService.createBudgetAllocation({
+    mutationFn: async (allocationData: { budgetId: string; allocations: { categoryId: string; amount: string }[] }) => {
+      const promises = allocationData.allocations.map(allocation =>
+        storageService.createBudgetAllocation({
           budgetId: allocationData.budgetId,
           categoryId: allocation.categoryId,
           allocatedAmount: allocation.amount,
@@ -93,7 +93,7 @@ export default function BudgetSetup() {
 
   const handleIncomeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!monthlyIncome || parseFloat(monthlyIncome) <= 0) {
       toast({
         title: "Error",
@@ -105,7 +105,7 @@ export default function BudgetSetup() {
 
     try {
       const currentMonth = new Date().toISOString().slice(0, 7);
-      
+
       const newBudget = await createBudget.mutateAsync({
         monthlyIncome: monthlyIncome,
         month: currentMonth,
@@ -124,7 +124,7 @@ export default function BudgetSetup() {
 
   const handleCreateCategory = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!newCategoryName || !newCategoryIcon || !newCategoryColor) {
       toast({
         title: "Error",
@@ -164,7 +164,7 @@ export default function BudgetSetup() {
   const totalAllocated = Object.values(allocations)
     .filter(amount => amount)
     .reduce((sum, amount) => sum + parseFloat(amount), 0);
-  
+
   const remainingBudget = parseFloat(monthlyIncome) - totalAllocated;
 
   const getIconComponent = (iconName: string) => {
@@ -185,7 +185,7 @@ export default function BudgetSetup() {
               Enter your monthly income to get started with expense tracking
             </p>
           </CardHeader>
-          
+
           <CardContent>
             <form onSubmit={handleIncomeSubmit} className="space-y-6">
               <div>
@@ -213,16 +213,16 @@ export default function BudgetSetup() {
                   This will be used as the basis for your budget allocations
                 </p>
               </div>
-              
-              <Button 
-                type="submit" 
+
+              <Button
+                type="submit"
                 className="w-full"
                 disabled={createBudget.isPending}
                 data-testid="button-create-budget"
               >
                 {createBudget.isPending ? "Creating Budget..." : "Continue to Categories"}
               </Button>
-              
+
               <div className="text-center">
                 <p className="text-sm text-muted-foreground">
                   Next: Set up budget categories and allocations
@@ -262,14 +262,13 @@ export default function BudgetSetup() {
               </div>
             </div>
           </CardHeader>
-          
+
           <CardContent className="space-y-6">
             {/* Progress Bar */}
             <div className="w-full bg-muted rounded-full h-3">
-              <div 
-                className={`h-3 rounded-full transition-all duration-300 ${
-                  remainingBudget >= 0 ? 'bg-primary' : 'bg-destructive'
-                }`}
+              <div
+                className={`h-3 rounded-full transition-all duration-300 ${remainingBudget >= 0 ? 'bg-primary' : 'bg-destructive'
+                  }`}
                 style={{ width: `${Math.min((totalAllocated / parseFloat(monthlyIncome)) * 100, 100)}%` }}
               ></div>
             </div>
@@ -301,7 +300,7 @@ export default function BudgetSetup() {
                           required
                         />
                       </div>
-                      
+
                       <div>
                         <Label htmlFor="categoryIcon">Icon *</Label>
                         <Select value={newCategoryIcon} onValueChange={setNewCategoryIcon} required>
@@ -323,7 +322,7 @@ export default function BudgetSetup() {
                           </SelectContent>
                         </Select>
                       </div>
-                      
+
                       <div>
                         <Label htmlFor="categoryColor">Color *</Label>
                         <Select value={newCategoryColor} onValueChange={setNewCategoryColor} required>
@@ -334,8 +333,8 @@ export default function BudgetSetup() {
                             {colorOptions.map((option) => (
                               <SelectItem key={option.value} value={option.value}>
                                 <div className="flex items-center space-x-2">
-                                  <div 
-                                    className="w-4 h-4 rounded-full" 
+                                  <div
+                                    className="w-4 h-4 rounded-full"
                                     style={{ backgroundColor: option.value }}
                                   ></div>
                                   <span>{option.label}</span>
@@ -345,19 +344,19 @@ export default function BudgetSetup() {
                           </SelectContent>
                         </Select>
                       </div>
-                      
+
                       <div className="flex space-x-3 pt-4">
-                        <Button 
-                          type="button" 
-                          variant="outline" 
+                        <Button
+                          type="button"
+                          variant="outline"
                           onClick={() => setShowCreateCategory(false)}
                           className="flex-1"
                           data-testid="button-cancel-category"
                         >
                           Cancel
                         </Button>
-                        <Button 
-                          type="submit" 
+                        <Button
+                          type="submit"
                           className="flex-1"
                           disabled={createCategoryMutation.isPending}
                           data-testid="button-create-category"
@@ -369,7 +368,7 @@ export default function BudgetSetup() {
                   </DialogContent>
                 </Dialog>
               </div>
-              
+
               {categories.map((category) => {
                 const IconComponent = getIconComponent(category.icon);
                 return (
@@ -377,7 +376,7 @@ export default function BudgetSetup() {
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
-                          <div 
+                          <div
                             className="w-10 h-10 rounded-lg flex items-center justify-center"
                             style={{ backgroundColor: `${category.color}20`, color: category.color }}
                           >
@@ -418,15 +417,15 @@ export default function BudgetSetup() {
 
             {/* Action Buttons */}
             <div className="flex space-x-3 pt-6">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => setStep(1)}
                 className="flex-1"
                 data-testid="button-back"
               >
                 Back
               </Button>
-              <Button 
+              <Button
                 onClick={handleFinishSetup}
                 className="flex-1"
                 disabled={createAllocationsMutation.isPending}
@@ -435,7 +434,7 @@ export default function BudgetSetup() {
                 {createAllocationsMutation.isPending ? "Setting up..." : "Finish Setup"}
               </Button>
             </div>
-            
+
             <div className="text-center">
               <p className="text-sm text-muted-foreground">
                 You can skip allocations and set them up later from the dashboard

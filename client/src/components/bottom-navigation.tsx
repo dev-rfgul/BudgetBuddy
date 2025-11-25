@@ -1,55 +1,60 @@
-import { Plus, Settings, Receipt } from "lucide-react";
+import { Link, useLocation } from "wouter";
+import { Plus, Settings, Receipt, Home, RefreshCw, Target } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface BottomNavigationProps {
-  onAddExpenseClick: () => void;
+  onAddExpenseClick?: () => void;
   onManageBudgetClick?: () => void;
   onTransactionsClick?: () => void;
 }
 
-export default function BottomNavigation({ onAddExpenseClick, onManageBudgetClick, onTransactionsClick }: BottomNavigationProps) {
+export default function BottomNavigation({ onAddExpenseClick }: BottomNavigationProps) {
+  const [location] = useLocation();
+
+  const isActive = (path: string) => location === path;
+
   return (
-    // Bottom navigation with Add Expense, Transactions, and Settings buttons
-    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-lg" data-testid="bottom-navigation" role="navigation" aria-label="Bottom navigation">
-      <div className="max-w-5xl mx-auto px-4">
-        <div className="flex items-center justify-around py-2.5">
-          {/* Add Expense Button */}
-          <button 
-            onClick={onAddExpenseClick}
-            className="flex flex-col items-center space-y-1 py-1.5 px-3 transition-all hover:scale-105 active:scale-95"
-            data-testid="nav-add-expense"
-            aria-label="Add expense"
-          >
-            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-primary rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-shadow">
-              <Plus className="w-6 h-6 sm:w-7 sm:h-7 text-primary-foreground" />
+    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-lg z-50" data-testid="bottom-navigation">
+      <div className="max-w-md mx-auto px-4">
+        <div className="flex items-center justify-between py-2">
+
+          <Link href="/">
+            <div className={cn("flex flex-col items-center space-y-1 p-2 cursor-pointer", isActive("/") ? "text-primary" : "text-muted-foreground")}>
+              <Home className="w-6 h-6" />
+              <span className="text-[10px] font-medium">Home</span>
             </div>
-            <span className="text-[10px] sm:text-xs font-semibold text-foreground">Add</span>
-          </button>
-          
-          {/* Transactions Button */}
-          <button 
-            onClick={() => onTransactionsClick?.()}
-            className="flex flex-col items-center space-y-1 py-1.5 px-3 transition-all hover:scale-105 active:scale-95"
-            data-testid="nav-transactions"
-            aria-label="Transactions"
-          >
-            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-muted rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-shadow">
-              <Receipt className="w-6 h-6 sm:w-7 sm:h-7 text-muted-foreground" />
+          </Link>
+
+          <Link href="/recurring-expenses">
+            <div className={cn("flex flex-col items-center space-y-1 p-2 cursor-pointer", isActive("/recurring-expenses") ? "text-primary" : "text-muted-foreground")}>
+              <RefreshCw className="w-6 h-6" />
+              <span className="text-[10px] font-medium">Recurring</span>
             </div>
-            <span className="text-[10px] sm:text-xs font-semibold text-foreground">Transactions</span>
-          </button>
-          
-          {/* Settings Button */}
-          <button 
-            onClick={() => onManageBudgetClick?.()}
-            className="flex flex-col items-center space-y-1 py-1.5 px-3 transition-all hover:scale-105 active:scale-95"
-            data-testid="nav-settings"
-            aria-label="Settings"
-          >
-            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-muted rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-shadow">
-              <Settings className="w-6 h-6 sm:w-7 sm:h-7 text-muted-foreground" />
+          </Link>
+
+          <div className="relative -top-6">
+            <button
+              onClick={onAddExpenseClick}
+              className="flex flex-col items-center justify-center w-14 h-14 bg-primary rounded-full shadow-lg hover:shadow-xl transition-all active:scale-95"
+            >
+              <Plus className="w-7 h-7 text-primary-foreground" />
+            </button>
+          </div>
+
+          <Link href="/savings-goals">
+            <div className={cn("flex flex-col items-center space-y-1 p-2 cursor-pointer", isActive("/savings-goals") ? "text-primary" : "text-muted-foreground")}>
+              <Target className="w-6 h-6" />
+              <span className="text-[10px] font-medium">Goals</span>
             </div>
-            <span className="text-[10px] sm:text-xs font-semibold text-foreground">Settings</span>
-          </button>
+          </Link>
+
+          <Link href="/settings">
+            <div className={cn("flex flex-col items-center space-y-1 p-2 cursor-pointer", isActive("/settings") ? "text-primary" : "text-muted-foreground")}>
+              <Settings className="w-6 h-6" />
+              <span className="text-[10px] font-medium">Settings</span>
+            </div>
+          </Link>
+
         </div>
       </div>
     </nav>

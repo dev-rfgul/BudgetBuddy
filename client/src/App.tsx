@@ -8,6 +8,9 @@ import Dashboard from "@/pages/dashboard";
 import BudgetSetup from "@/pages/budget-setup";
 import ManageBudget from "@/pages/manage-budget";
 import Transactions from "@/pages/transactions";
+import Settings from "@/pages/settings";
+import RecurringExpenses from "@/pages/recurring-expenses";
+import SavingsGoals from "@/pages/savings-goals";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -17,6 +20,9 @@ function Router() {
       <Route path="/budget-setup" component={BudgetSetup} />
       <Route path="/manage-budget" component={ManageBudget} />
       <Route path="/transactions" component={Transactions} />
+      <Route path="/settings" component={Settings} />
+      <Route path="/recurring-expenses" component={RecurringExpenses} />
+      <Route path="/savings-goals" component={SavingsGoals} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -26,7 +32,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <div style={{display:'flex',gap:12,alignItems:'center',justifyContent:'flex-end',padding:8}}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'flex-end', padding: 8 }}>
           <InstallButton />
         </div>
         <Toaster />

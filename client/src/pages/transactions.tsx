@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
-import { localStorageService } from "@/lib/localStorage";
+import { storageService } from "@/lib/storage";
 import { useExpenses, useDeleteExpense } from "@/hooks/use-expenses";
 import { type Expense, type Category } from "@/types";
 import { ArrowLeft, Filter, X, ShoppingCart, Car, FileText, Zap, Smile, Trash2, Calendar, DollarSign, TrendingUp } from "lucide-react";
@@ -32,7 +32,7 @@ export default function Transactions() {
   const [, navigate] = useLocation();
   const budgetId = new URLSearchParams(window.location.search).get('budgetId');
   const initialCategoryId = new URLSearchParams(window.location.search).get('categoryId');
-  
+
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(initialCategoryId);
   const [sortBy, setSortBy] = useState<'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc'>('date-desc');
   const [chartPeriod, setChartPeriod] = useState<'day' | 'week' | 'month'>('day');
@@ -40,7 +40,7 @@ export default function Transactions() {
   const { data: expenses = [], isLoading } = useExpenses(budgetId || undefined);
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ["categories"],
-    queryFn: async () => await localStorageService.getCategories(),
+    queryFn: async () => await storageService.getCategories(),
   });
 
   const deleteMutation = useDeleteExpense();
@@ -106,7 +106,7 @@ export default function Transactions() {
     if (!currentMonthExpenses || currentMonthExpenses.length === 0 || categories.length === 0) return [];
 
     // Get categories that have expenses
-    const categoriesWithExpenses = categories.filter(cat => 
+    const categoriesWithExpenses = categories.filter(cat =>
       currentMonthExpenses.some(exp => exp.categoryId === cat.id)
     );
 
@@ -121,7 +121,7 @@ export default function Transactions() {
         const date = subDays(now, i);
         const dayStart = startOfDay(date);
         const dayEnd = endOfDay(date);
-        
+
         const dayData: any = {
           label: format(date, "EEE"),
           fullDate: date,
@@ -132,7 +132,7 @@ export default function Transactions() {
             const expDate = new Date(exp.date);
             return exp.categoryId === category.id && expDate >= dayStart && expDate <= dayEnd;
           });
-          
+
           const total = categoryExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
           dayData[category.id] = total;
         });
@@ -144,7 +144,7 @@ export default function Transactions() {
       for (let i = 3; i >= 0; i--) {
         const weekStart = startOfWeek(subWeeks(now, i), { weekStartsOn: 1 });
         const weekEnd = endOfWeek(subWeeks(now, i), { weekStartsOn: 1 });
-        
+
         const weekData: any = {
           label: `W${4 - i}`,
           fullDate: weekStart,
@@ -168,7 +168,7 @@ export default function Transactions() {
         const date = subDays(now, i);
         const dayStart = startOfDay(date);
         const dayEnd = endOfDay(date);
-        
+
         const dayData: any = {
           label: format(date, "d"),
           fullDate: date,
@@ -179,7 +179,7 @@ export default function Transactions() {
             const expDate = new Date(exp.date);
             return exp.categoryId === category.id && expDate >= dayStart && expDate <= dayEnd;
           });
-          
+
           const total = categoryExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
           dayData[category.id] = total;
         });
@@ -193,7 +193,7 @@ export default function Transactions() {
 
   // Get categories that have expenses for the chart
   const categoriesWithExpenses = useMemo(() => {
-    return categories.filter(cat => 
+    return categories.filter(cat =>
       currentMonthExpenses.some(exp => exp.categoryId === cat.id)
     );
   }, [categories, currentMonthExpenses]);
@@ -281,22 +281,22 @@ export default function Transactions() {
                 <ResponsiveContainer width="100%" height={280} className="sm:h-[320px]">
                   <LineChart data={chartData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.3} vertical={false} />
-                    <XAxis 
-                      dataKey="label" 
+                    <XAxis
+                      dataKey="label"
                       tick={{ fontSize: 9, fill: '#6b7280' }}
                       tickLine={false}
                       axisLine={{ stroke: '#e5e7eb' }}
                       interval={chartPeriod === 'month' ? 5 : chartPeriod === 'week' ? 0 : 0}
                       height={20}
                     />
-                    <YAxis 
+                    <YAxis
                       tick={{ fontSize: 9, fill: '#6b7280' }}
                       tickLine={false}
                       axisLine={false}
                       tickFormatter={(value) => value === 0 ? '0' : `${(value / 1000).toFixed(0)}k`}
                       width={30}
                     />
-                    <Tooltip 
+                    <Tooltip
                       contentStyle={{
                         backgroundColor: '#ffffff',
                         border: '1px solid #e5e7eb',
@@ -323,7 +323,7 @@ export default function Transactions() {
                         return label;
                       }}
                     />
-                    <Legend 
+                    <Legend
                       wrapperStyle={{ fontSize: '9px', paddingTop: '8px' }}
                       formatter={(value) => {
                         const category = categoriesWithExpenses.find(c => c.id === value);
@@ -347,7 +347,7 @@ export default function Transactions() {
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-            
+
             </CardContent>
           </Card>
         )}
@@ -372,7 +372,7 @@ export default function Transactions() {
                 </Button>
               )}
             </div>
-            
+
             <div className="flex flex-wrap gap-1.5 sm:gap-2">
               <Badge
                 variant={!selectedCategoryId ? "default" : "outline"}
@@ -384,7 +384,7 @@ export default function Transactions() {
               {categoryStats.map(({ categoryId, count, total, category }) => {
                 const IconComponent = category ? iconMap[category.icon as keyof typeof iconMap] || Smile : Smile;
                 const isSelected = selectedCategoryId === categoryId;
-                
+
                 return (
                   <Badge
                     key={categoryId}
@@ -412,7 +412,7 @@ export default function Transactions() {
               <>Showing all {transactionCount} transaction{transactionCount !== 1 ? 's' : ''}</>
             )}
           </div>
-          
+
           <Select value={sortBy} onValueChange={(value) => setSortBy(value as typeof sortBy)}>
             <SelectTrigger className="w-full sm:w-[160px] h-8 text-xs">
               <SelectValue placeholder="Sort by" />
@@ -439,7 +439,7 @@ export default function Transactions() {
               <div className="text-center py-6 sm:py-8">
                 <DollarSign className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground mx-auto mb-3 sm:mb-4" />
                 <p className="text-sm sm:text-base text-muted-foreground">
-                  {selectedCategoryId 
+                  {selectedCategoryId
                     ? `No transactions found for ${findCategoryName(selectedCategoryId)}`
                     : 'No transactions for this month.'
                   }
@@ -461,14 +461,14 @@ export default function Transactions() {
             {sortedExpenses.map((tx, index) => {
               const category = findCategory(tx.categoryId);
               const IconComponent = category ? iconMap[category.icon as keyof typeof iconMap] || Smile : Smile;
-              
+
               return (
                 <Card key={tx.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-3 sm:p-4">
                     <div className="flex items-start justify-between gap-2 sm:gap-4">
                       {/* Left side - Icon and Details */}
                       <div className="flex items-start space-x-2 sm:space-x-3 flex-1 min-w-0">
-                        <div 
+                        <div
                           className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0"
                           style={{ backgroundColor: category ? `${category.color}20` : '#e5e7eb' }}
                         >
@@ -478,20 +478,20 @@ export default function Transactions() {
                             <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
                           )}
                         </div>
-                        
+
                         <div className="flex-1 min-w-0">
                           <h3 className="font-medium text-xs sm:text-sm mb-0.5">{findCategoryName(tx.categoryId)}</h3>
-                          
+
                           {tx.description && (
                             <p className="text-[10px] sm:text-xs text-muted-foreground mb-1 break-words line-clamp-2">
                               {tx.description}
                             </p>
                           )}
-                          
+
                           <div className="flex items-center space-x-1.5 text-[9px] sm:text-xs text-muted-foreground">
                             <Calendar className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                            <span>{new Date(tx.date).toLocaleString('en-US', { 
-                              month: 'short', 
+                            <span>{new Date(tx.date).toLocaleString('en-US', {
+                              month: 'short',
                               day: 'numeric',
                               hour: '2-digit',
                               minute: '2-digit'
@@ -505,7 +505,7 @@ export default function Transactions() {
                         <div className="font-bold text-xs sm:text-sm text-destructive whitespace-nowrap">
                           -₨{Number(tx.amount).toLocaleString()}
                         </div>
-                        
+
                         <Button
                           variant="ghost"
                           size="sm"

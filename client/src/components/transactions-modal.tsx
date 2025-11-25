@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
-import { localStorageService } from "@/lib/localStorage";
+import { storageService } from "@/lib/storage";
 import { useExpenses, useDeleteExpense } from "@/hooks/use-expenses";
 import { type Expense, type Category } from "@/types";
 import { useMemo } from "react";
@@ -19,7 +19,7 @@ export default function TransactionsModal({ open, onOpenChange, budgetId, catego
   const { data: expenses = [], isLoading } = useExpenses(budgetId);
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ["categories"],
-    queryFn: async () => await localStorageService.getCategories(),
+    queryFn: async () => await storageService.getCategories(),
     enabled: !!open,
   });
 
@@ -59,8 +59,8 @@ export default function TransactionsModal({ open, onOpenChange, budgetId, catego
             {/* Place reset in a container with right margin so it doesn't collide with the close button */}
             <div className="flex items-center gap-2 mr-6">
               {!categoryId && filteredExpenses.length > 0 && budgetId && (
-                <ResetTransactionsModal 
-                  budgetId={budgetId} 
+                <ResetTransactionsModal
+                  budgetId={budgetId}
                   transactionCount={filteredExpenses.length}
                 />
               )}
@@ -122,7 +122,7 @@ export default function TransactionsModal({ open, onOpenChange, budgetId, catego
           )}
         </div>
 
-  <div className="flex justify-end p-2">
+        <div className="flex justify-end p-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
         </div>
       </DialogContent>

@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useUpdateBudget } from "@/hooks/use-budget";
 import { useBudgetSummary } from "@/hooks/use-budget";
-import { localStorageService } from "@/lib/localStorage";
+import { storageService } from "@/lib/storage";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Category, BudgetAllocation } from "@/types";
@@ -34,17 +34,17 @@ export default function ManageBudget() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const budgetId = new URLSearchParams(window.location.search).get('budgetId');
-  
+
   const { data: summary } = useBudgetSummary(budgetId || undefined);
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ["categories"],
-    queryFn: async () => await localStorageService.getCategories(),
+    queryFn: async () => await storageService.getCategories(),
   });
 
   const { data: allocations = [] } = useQuery<BudgetAllocation[]>({
     queryKey: ["allocations", budgetId],
     enabled: !!budgetId,
-    queryFn: async () => (budgetId ? await localStorageService.getBudgetAllocations(budgetId) : []),
+    queryFn: async () => (budgetId ? await storageService.getBudgetAllocations(budgetId) : []),
   });
 
   const [localAlloc, setLocalAlloc] = useState<Record<string, { id?: string; allocatedAmount: string }>>({});
@@ -79,7 +79,7 @@ export default function ManageBudget() {
 
   const createCategoryMutation = useMutation({
     mutationFn: async (categoryData: { name: string; icon: string; color: string }) => {
-      return await localStorageService.createCategory({ ...categoryData, isDefault: false });
+      return await storageService.createCategory({ ...categoryData, isDefault: false });
     },
     onSuccess: (created: Category) => {
       queryClient.setQueryData(["categories"], (old: Category[] | undefined) => {
@@ -137,8 +137,8 @@ export default function ManageBudget() {
       const current = summary?.monthlyBudget ?? 0;
       const newTotal = current + amount;
       await updateBudget.mutateAsync({ id: budgetId, data: { monthlyIncome: String(newTotal) } });
-      await localStorageService.createIncomeRecord({ budgetId, amount: String(amount), note: extraIncomeNote });
-      
+      await storageService.createIncomeRecord({ budgetId, amount: String(amount), note: extraIncomeNote });
+
       queryClient.setQueryData(["budget", budgetId, "summary"], (old: any) => {
         if (!old) return old;
         const monthlyBudget = Number(old.monthlyBudget ?? 0) + amount;
@@ -151,11 +151,11 @@ export default function ManageBudget() {
         if (!old) return old;
         return { ...old, monthlyIncome: String(Number(old.monthlyIncome ?? 0) + amount) };
       });
-      
+
       queryClient.invalidateQueries({ queryKey: ["budget", budgetId, "summary"] });
       queryClient.invalidateQueries({ queryKey: ["budget", budgetId] });
       queryClient.invalidateQueries();
-      
+
       toast({ title: "Success", description: `Added PKR ${amount.toLocaleString()} to monthly budget` });
       setExtraIncome("");
       setExtraIncomeNote("");
@@ -177,7 +177,7 @@ export default function ManageBudget() {
       toast({ title: "Error", description: "Total allocations exceed monthly budget", variant: "destructive" });
       return;
     }
-    
+
     try {
       for (const categoryId of Object.keys(localAlloc)) {
         const amount = localAlloc[categoryId].allocatedAmount || "0";
@@ -185,13 +185,13 @@ export default function ManageBudget() {
 
         if (existing) {
           if (Number(amount) === 0) {
-            await localStorageService.deleteBudgetAllocation(existing.id);
+            await storageService.deleteBudgetAllocation(existing.id);
           } else if (String(existing.allocatedAmount) !== String(amount)) {
-            await localStorageService.updateBudgetAllocation(existing.id, { allocatedAmount: amount });
+            await storageService.updateBudgetAllocation(existing.id, { allocatedAmount: amount });
           }
         } else {
           if (Number(amount) > 0) {
-            await localStorageService.createBudgetAllocation({ budgetId, categoryId, allocatedAmount: amount });
+            await storageService.createBudgetAllocation({ budgetId, categoryId, allocatedAmount: amount });
           }
         }
       }
@@ -231,7 +231,7 @@ export default function ManageBudget() {
     if (!expenses || expenses.length === 0 || categories.length === 0) return [];
 
     // Get categories that have expenses
-    const categoriesWithExpenses = categories.filter(cat => 
+    const categoriesWithExpenses = categories.filter(cat =>
       expenses.some(exp => exp.categoryId === cat.id)
     );
 
@@ -246,7 +246,7 @@ export default function ManageBudget() {
         const date = subDays(now, i);
         const dayStart = startOfDay(date);
         const dayEnd = endOfDay(date);
-        
+
         const dayData: any = {
           label: format(date, "EEE"),
           fullDate: date,
@@ -257,7 +257,7 @@ export default function ManageBudget() {
             const expDate = new Date(exp.date);
             return exp.categoryId === category.id && expDate >= dayStart && expDate <= dayEnd;
           });
-          
+
           const total = categoryExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
           dayData[category.id] = total;
         });
@@ -269,7 +269,7 @@ export default function ManageBudget() {
       for (let i = 3; i >= 0; i--) {
         const weekStart = startOfWeek(subWeeks(now, i), { weekStartsOn: 1 });
         const weekEnd = endOfWeek(subWeeks(now, i), { weekStartsOn: 1 });
-        
+
         const weekData: any = {
           label: `W${4 - i}`,
           fullDate: weekStart,
@@ -293,7 +293,7 @@ export default function ManageBudget() {
         const date = subDays(now, i);
         const dayStart = startOfDay(date);
         const dayEnd = endOfDay(date);
-        
+
         const dayData: any = {
           label: format(date, "d"),
           fullDate: date,
@@ -304,7 +304,7 @@ export default function ManageBudget() {
             const expDate = new Date(exp.date);
             return exp.categoryId === category.id && expDate >= dayStart && expDate <= dayEnd;
           });
-          
+
           const total = categoryExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
           dayData[category.id] = total;
         });
@@ -318,7 +318,7 @@ export default function ManageBudget() {
 
   // Get categories that have expenses for the chart
   const categoriesWithExpenses = useMemo(() => {
-    return categories.filter(cat => 
+    return categories.filter(cat =>
       expenses.some(exp => exp.categoryId === cat.id)
     );
   }, [categories, expenses]);
@@ -364,8 +364,8 @@ export default function ManageBudget() {
               </div>
             </div>
             {currentMonthTransactions > 0 && budgetId && (
-              <ResetTransactionsModal 
-                budgetId={budgetId} 
+              <ResetTransactionsModal
+                budgetId={budgetId}
                 transactionCount={currentMonthTransactions}
               />
             )}
@@ -401,7 +401,7 @@ export default function ManageBudget() {
                 </p>
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Allocation Progress</span>
@@ -445,22 +445,22 @@ export default function ManageBudget() {
                 <ResponsiveContainer width="100%" height={280} className="sm:h-[300px]">
                   <LineChart data={chartData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.3} vertical={false} />
-                    <XAxis 
-                      dataKey="label" 
+                    <XAxis
+                      dataKey="label"
                       tick={{ fontSize: 9, fill: '#6b7280' }}
                       tickLine={false}
                       axisLine={{ stroke: '#e5e7eb' }}
                       interval={chartPeriod === 'month' ? 5 : chartPeriod === 'week' ? 0 : 0}
                       height={20}
                     />
-                    <YAxis 
+                    <YAxis
                       tick={{ fontSize: 9, fill: '#6b7280' }}
                       tickLine={false}
                       axisLine={false}
                       tickFormatter={(value) => value === 0 ? '0' : `${(value / 1000).toFixed(0)}k`}
                       width={30}
                     />
-                    <Tooltip 
+                    <Tooltip
                       contentStyle={{
                         backgroundColor: '#ffffff',
                         border: '1px solid #e5e7eb',
@@ -487,7 +487,7 @@ export default function ManageBudget() {
                         return label;
                       }}
                     />
-                    <Legend 
+                    <Legend
                       wrapperStyle={{ fontSize: '9px', paddingTop: '8px' }}
                       formatter={(value) => {
                         const category = categoriesWithExpenses.find(c => c.id === value);
@@ -648,8 +648,8 @@ export default function ManageBudget() {
                       {colorOptions.map((option) => (
                         <SelectItem key={option.value} value={option.value}>
                           <div className="flex items-center space-x-2">
-                            <div 
-                              className="w-4 h-4 rounded-full border" 
+                            <div
+                              className="w-4 h-4 rounded-full border"
                               style={{ backgroundColor: option.value }}
                             ></div>
                             <span>{option.label}</span>
@@ -714,14 +714,14 @@ export default function ManageBudget() {
                   const allocated = Number(localAlloc[category.id]?.allocatedAmount || 0);
                   const percentage = monthlyBudget > 0 ? (allocated / monthlyBudget) * 100 : 0;
                   const IconComponent = iconMap[category.icon as keyof typeof iconMap] || Smile;
-                  
+
                   return (
                     <div key={category.id}>
                       {index > 0 && <Separator className="my-4" />}
                       <div className="space-y-3">
                         <div className="flex items-start justify-between">
                           <div className="flex items-center space-x-3">
-                            <div 
+                            <div
                               className="w-10 h-10 rounded-lg flex items-center justify-center"
                               style={{ backgroundColor: `${category.color}20` }}
                             >
@@ -752,12 +752,12 @@ export default function ManageBudget() {
                           </div>
                         </div>
                         {allocated > 0 && (
-                          <Progress 
-                            value={Math.min(percentage, 100)} 
+                          <Progress
+                            value={Math.min(percentage, 100)}
                             className="h-1.5"
-                            style={{ 
+                            style={{
                               // @ts-ignore
-                              '--progress-background': category.color 
+                              '--progress-background': category.color
                             }}
                           />
                         )}
