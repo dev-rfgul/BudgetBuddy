@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useUpdateBudget } from "@/hooks/use-budget";
+import { useUpdateBudget, useBudgetByMonth } from "@/hooks/use-budget";
 import { useBudgetSummary } from "@/hooks/use-budget";
 import { storageService } from "@/lib/storage";
 import { queryClient } from "@/lib/queryClient";
@@ -18,9 +18,10 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
-import { format, subDays, startOfDay, endOfDay, startOfWeek, endOfWeek, subWeeks } from "date-fns";
+import { format, subDays, startOfDay, endOfDay, startOfWeek, endOfWeek, subWeeks, parseISO } from "date-fns";
 import { useExpenses } from "@/hooks/use-expenses";
 import ResetTransactionsModal from "@/components/reset-transactions-modal";
+import MonthSelector from "@/components/month-selector";
 
 const iconMap = {
   "shopping-cart": ShoppingCart,
@@ -33,7 +34,12 @@ const iconMap = {
 export default function ManageBudget() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const budgetId = new URLSearchParams(window.location.search).get('budgetId');
+
+  const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7));
+
+  // Get budget for selected month
+  const { data: budget } = useBudgetByMonth(selectedMonth);
+  const budgetId = budget?.id;
 
   const { data: summary } = useBudgetSummary(budgetId || undefined);
   const { data: categories = [] } = useQuery<Category[]>({
@@ -237,13 +243,18 @@ export default function ManageBudget() {
 
     if (categoriesWithExpenses.length === 0) return [];
 
-    const now = new Date();
+    // Use selected month date for relative calculations
+    const monthDate = parseISO(selectedMonth + "-01");
+    // If selected month is current month, use now, otherwise use end of that month
+    const isCurrentMonth = selectedMonth === new Date().toISOString().slice(0, 7);
+    const referenceDate = isCurrentMonth ? new Date() : endOfDay(new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0));
+
     const data: any[] = [];
 
     if (chartPeriod === 'day') {
       // Last 7 days
       for (let i = 6; i >= 0; i--) {
-        const date = subDays(now, i);
+        const date = subDays(referenceDate, i);
         const dayStart = startOfDay(date);
         const dayEnd = endOfDay(date);
 
@@ -267,8 +278,8 @@ export default function ManageBudget() {
     } else if (chartPeriod === 'week') {
       // Last 4 weeks
       for (let i = 3; i >= 0; i--) {
-        const weekStart = startOfWeek(subWeeks(now, i), { weekStartsOn: 1 });
-        const weekEnd = endOfWeek(subWeeks(now, i), { weekStartsOn: 1 });
+        const weekStart = startOfWeek(subWeeks(referenceDate, i), { weekStartsOn: 1 });
+        const weekEnd = endOfWeek(subWeeks(referenceDate, i), { weekStartsOn: 1 });
 
         const weekData: any = {
           label: `W${4 - i}`,
@@ -290,7 +301,7 @@ export default function ManageBudget() {
     } else {
       // Last 30 days
       for (let i = 29; i >= 0; i--) {
-        const date = subDays(now, i);
+        const date = subDays(referenceDate, i);
         const dayStart = startOfDay(date);
         const dayEnd = endOfDay(date);
 
@@ -314,7 +325,7 @@ export default function ManageBudget() {
     }
 
     return data;
-  }, [expenses, categories, chartPeriod]);
+  }, [expenses, categories, chartPeriod, selectedMonth]);
 
   // Get categories that have expenses for the chart
   const categoriesWithExpenses = useMemo(() => {
@@ -326,27 +337,9 @@ export default function ManageBudget() {
   // Calculate current month transactions for reset functionality
   const currentMonthTransactions = useMemo(() => {
     if (!expenses) return 0;
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
-    return expenses.filter((e) => {
-      const d = new Date(e.date);
-      return d.getFullYear() === year && d.getMonth() === month;
-    }).length;
+    // We are already filtered by budgetId which corresponds to selectedMonth
+    return expenses.length;
   }, [expenses]);
-
-  if (!budgetId) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="max-w-md mx-4">
-          <CardContent className="pt-6 text-center">
-            <p className="text-muted-foreground">No budget ID provided</p>
-            <Button onClick={() => navigate("/")} className="mt-4">Go to Dashboard</Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background pb-8">
@@ -359,16 +352,24 @@ export default function ManageBudget() {
                 <ArrowLeft className="w-5 h-5" />
               </Button>
               <div>
-                <h1 className="font-semibold text-xl">Manage Budget</h1>
-                <p className="text-sm text-muted-foreground">Allocate your monthly budget</p>
+                <h1 className="font-semibold text-xl hidden sm:block">Manage Budget</h1>
+                <p className="text-sm text-muted-foreground hidden sm:block">Allocate your monthly budget</p>
               </div>
             </div>
-            {currentMonthTransactions > 0 && budgetId && (
-              <ResetTransactionsModal
-                budgetId={budgetId}
-                transactionCount={currentMonthTransactions}
+
+            <div className="flex items-center space-x-2">
+              <MonthSelector
+                currentMonth={selectedMonth}
+                onMonthChange={setSelectedMonth}
               />
-            )}
+
+              {currentMonthTransactions > 0 && budgetId && (
+                <ResetTransactionsModal
+                  budgetId={budgetId}
+                  transactionCount={currentMonthTransactions}
+                />
+              )}
+            </div>
           </div>
         </div>
       </header>

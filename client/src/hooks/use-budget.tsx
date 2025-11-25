@@ -42,6 +42,25 @@ export function useCurrentBudget() {
   });
 }
 
+export function useBudgetByMonth(month: string) {
+  return useQuery<Budget | undefined>({
+    queryKey: ["budget", month],
+    queryFn: async () => {
+      return await storageService.getBudget(month);
+    },
+    enabled: !!month,
+  });
+}
+
+export function useAvailableMonths() {
+  return useQuery<Budget[]>({
+    queryKey: ["available-months"],
+    queryFn: async () => {
+      return await storageService.getRecentBudgets(12); // Fetch last 12 months
+    },
+  });
+}
+
 export function useBudgetSummary(budgetId: string | undefined) {
   return useQuery<BudgetSummary>({
     queryKey: ["budget", budgetId, "summary"],

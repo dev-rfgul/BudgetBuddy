@@ -1,10 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { storageService } from "@/lib/storage";
 import { useExpenses, useDeleteExpense } from "@/hooks/use-expenses";
+import { useBudgetByMonth } from "@/hooks/use-budget";
 import { type Expense, type Category } from "@/types";
 import { ArrowLeft, Filter, X, ShoppingCart, Car, FileText, Zap, Smile, Trash2, Calendar, DollarSign, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +19,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
-import { format, subDays, startOfDay, endOfDay, startOfWeek, endOfWeek, subWeeks } from "date-fns";
+import { format, subDays, startOfDay, endOfDay, startOfWeek, endOfWeek, subWeeks, parseISO } from "date-fns";
+import MonthSelector from "@/components/month-selector";
 
 const iconMap = {
   "shopping-cart": ShoppingCart,
@@ -30,14 +32,17 @@ const iconMap = {
 
 export default function Transactions() {
   const [, navigate] = useLocation();
-  const budgetId = new URLSearchParams(window.location.search).get('budgetId');
   const initialCategoryId = new URLSearchParams(window.location.search).get('categoryId');
 
+  const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7));
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(initialCategoryId);
   const [sortBy, setSortBy] = useState<'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc'>('date-desc');
   const [chartPeriod, setChartPeriod] = useState<'day' | 'week' | 'month'>('day');
 
-  const { data: expenses = [], isLoading } = useExpenses(budgetId || undefined);
+  // Get budget for selected month
+  const { data: budget } = useBudgetByMonth(selectedMonth);
+  const { data: expenses = [], isLoading } = useExpenses(budget?.id);
+
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ["categories"],
     queryFn: async () => await storageService.getCategories(),
@@ -45,15 +50,11 @@ export default function Transactions() {
 
   const deleteMutation = useDeleteExpense();
 
+  // Filter expenses by selected month (though useExpenses(budget.id) should already do this mostly)
+  // But we double check to be safe and consistent
   const currentMonthExpenses = useMemo(() => {
     if (!expenses) return [] as Expense[];
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
-    return expenses.filter((e) => {
-      const d = new Date(e.date);
-      return d.getFullYear() === year && d.getMonth() === month;
-    });
+    return expenses;
   }, [expenses]);
 
   const findCategory = (id?: string) => categories.find((c) => c.id === id);
@@ -112,13 +113,18 @@ export default function Transactions() {
 
     if (categoriesWithExpenses.length === 0) return [];
 
-    const now = new Date();
+    // Use selected month date for relative calculations
+    const monthDate = parseISO(selectedMonth + "-01");
+    // If selected month is current month, use now, otherwise use end of that month
+    const isCurrentMonth = selectedMonth === new Date().toISOString().slice(0, 7);
+    const referenceDate = isCurrentMonth ? new Date() : endOfDay(new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0));
+
     const data: any[] = [];
 
     if (chartPeriod === 'day') {
-      // Last 7 days
+      // Last 7 days relative to reference date
       for (let i = 6; i >= 0; i--) {
-        const date = subDays(now, i);
+        const date = subDays(referenceDate, i);
         const dayStart = startOfDay(date);
         const dayEnd = endOfDay(date);
 
@@ -142,8 +148,8 @@ export default function Transactions() {
     } else if (chartPeriod === 'week') {
       // Last 4 weeks
       for (let i = 3; i >= 0; i--) {
-        const weekStart = startOfWeek(subWeeks(now, i), { weekStartsOn: 1 });
-        const weekEnd = endOfWeek(subWeeks(now, i), { weekStartsOn: 1 });
+        const weekStart = startOfWeek(subWeeks(referenceDate, i), { weekStartsOn: 1 });
+        const weekEnd = endOfWeek(subWeeks(referenceDate, i), { weekStartsOn: 1 });
 
         const weekData: any = {
           label: `W${4 - i}`,
@@ -165,7 +171,7 @@ export default function Transactions() {
     } else {
       // Last 30 days
       for (let i = 29; i >= 0; i--) {
-        const date = subDays(now, i);
+        const date = subDays(referenceDate, i);
         const dayStart = startOfDay(date);
         const dayEnd = endOfDay(date);
 
@@ -189,7 +195,7 @@ export default function Transactions() {
     }
 
     return data;
-  }, [currentMonthExpenses, categories, chartPeriod]);
+  }, [currentMonthExpenses, categories, chartPeriod, selectedMonth]);
 
   // Get categories that have expenses for the chart
   const categoriesWithExpenses = useMemo(() => {
@@ -199,22 +205,9 @@ export default function Transactions() {
   }, [categories, currentMonthExpenses]);
 
   const handleDelete = async (expenseId: string) => {
-    if (!budgetId) return;
-    await deleteMutation.mutateAsync({ expenseId, budgetId });
+    if (!budget?.id) return;
+    await deleteMutation.mutateAsync({ expenseId, budgetId: budget.id });
   };
-
-  if (!budgetId) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="max-w-md mx-4">
-          <CardContent className="pt-6 text-center">
-            <p className="text-muted-foreground">No budget ID provided</p>
-            <Button onClick={() => navigate("/")} className="mt-4">Go to Dashboard</Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background pb-8">
@@ -226,13 +219,13 @@ export default function Transactions() {
               <Button variant="ghost" size="icon" onClick={() => navigate("/")} data-testid="button-back">
                 <ArrowLeft className="w-5 h-5" />
               </Button>
-              <div>
-                <h1 className="font-semibold text-xl">Transactions</h1>
-                <p className="text-sm text-muted-foreground">
-                  {new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
-                </p>
-              </div>
+              <h1 className="font-semibold text-xl hidden sm:block">Transactions</h1>
             </div>
+
+            <MonthSelector
+              currentMonth={selectedMonth}
+              onMonthChange={setSelectedMonth}
+            />
           </div>
         </div>
       </header>

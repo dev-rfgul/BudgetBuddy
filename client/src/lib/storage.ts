@@ -216,6 +216,15 @@ class StorageService {
     return db.getAll('budgets');
   }
 
+  async getRecentBudgets(limit: number = 8): Promise<Budget[]> {
+    const db = await initDB();
+    const allBudgets = await db.getAll('budgets');
+    // Sort by month descending (newest first)
+    return allBudgets
+      .sort((a, b) => b.month.localeCompare(a.month))
+      .slice(0, limit);
+  }
+
   // Category operations
   async getCategories(): Promise<Category[]> {
     const db = await initDB();

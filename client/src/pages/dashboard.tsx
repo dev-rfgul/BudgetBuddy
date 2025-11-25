@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,8 @@ import AddExpenseModal from "@/components/add-expense-modal";
 import BottomNavigation from "@/components/bottom-navigation";
 import SpendingChart from "@/components/spending-chart";
 import CategoryChartModal from "@/components/category-chart-modal";
-import { useCurrentBudget, useBudgetSummary } from "@/hooks/use-budget";
+import MonthSelector from "@/components/month-selector";
+import { useCurrentBudget, useBudgetByMonth, useBudgetSummary } from "@/hooks/use-budget";
 import { useCategoriesWithAllocations, useExpenses } from "@/hooks/use-expenses";
 import { Skeleton } from "@/components/ui/skeleton";
 import { type CategoryWithAllocation } from "@/types";
@@ -24,9 +25,14 @@ export default function Dashboard() {
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showCategoryChart, setShowCategoryChart] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<CategoryWithAllocation | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7));
   const [, navigate] = useLocation();
 
-  const { data: budget, isLoading: budgetLoading } = useCurrentBudget();
+  // Ensure current budget exists
+  const { data: currentBudget } = useCurrentBudget();
+
+  // Get budget for selected month
+  const { data: budget, isLoading: budgetLoading } = useBudgetByMonth(selectedMonth);
   const { data: summary, isLoading: summaryLoading } = useBudgetSummary(budget?.id);
   const { data: categories = [], isLoading: categoriesLoading } = useCategoriesWithAllocations(budget?.id);
   const { data: expenses = [], isLoading: expensesLoading } = useExpenses(budget?.id);
@@ -41,8 +47,11 @@ export default function Dashboard() {
     .sort((a, b) => b.allocated - a.allocated) // Sort by allocation amount
     .slice(0, 6); // Show top 6 categories
 
-  // If no budget exists, redirect to budget setup
-  if (!budgetLoading && !budget) {
+  // If no budget exists for current month (and we're viewing current month), redirect to budget setup
+  // But allow viewing historical months even if current month isn't set up yet (though unlikely)
+  const isCurrentMonth = selectedMonth === new Date().toISOString().slice(0, 7);
+
+  if (isCurrentMonth && !budgetLoading && !budget && !currentBudget) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="w-full max-w-md mx-4">
@@ -75,13 +84,13 @@ export default function Dashboard() {
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <DollarSign className="w-5 h-5 text-primary-foreground" />
               </div>
-              <div>
-                <h1 className="font-semibold text-lg">ExpenseTracker</h1>
-                <p className="text-xs text-muted-foreground" data-testid="current-month">
-                  {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                </p>
-              </div>
+              <h1 className="font-semibold text-lg hidden sm:block">ExpenseTracker</h1>
             </div>
+
+            <MonthSelector
+              currentMonth={selectedMonth}
+              onMonthChange={setSelectedMonth}
+            />
           </div>
         </div>
       </header>
