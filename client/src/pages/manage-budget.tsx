@@ -13,6 +13,7 @@ import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Category, BudgetAllocation } from "@/types";
 import { ShoppingCart, Car, FileText, Zap, Smile, ArrowLeft, Plus, Wallet, TrendingUp, ChevronDown, ChevronUp, BarChart3 } from "lucide-react";
+import { useSettings } from "@/hooks/use-settings";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -46,6 +47,8 @@ export default function ManageBudget() {
     queryKey: ["categories"],
     queryFn: async () => await storageService.getCategories(),
   });
+  const { data: settings } = useSettings();
+  const currency = settings?.currency || 'PKR';
 
   const { data: allocations = [] } = useQuery<BudgetAllocation[]>({
     queryKey: ["allocations", budgetId],
@@ -162,7 +165,7 @@ export default function ManageBudget() {
       queryClient.invalidateQueries({ queryKey: ["budget", budgetId] });
       queryClient.invalidateQueries();
 
-      toast({ title: "Success", description: `Added PKR ${amount.toLocaleString()} to monthly budget` });
+      toast({ title: "Success", description: `Added ${currency} ${amount.toLocaleString()} to monthly budget` });
       setExtraIncome("");
       setExtraIncomeNote("");
       setShowAddIncome(false);
@@ -387,18 +390,18 @@ export default function ManageBudget() {
             <div className="grid grid-cols-3 gap-4">
               <div className="text-center">
                 <p className="text-xs text-muted-foreground mb-1">Monthly Budget</p>
-                <p className="text-lg font-bold text-primary">PKR {monthlyBudget.toLocaleString()}</p>
+                <p className="text-lg font-bold text-primary">{currency} {monthlyBudget.toLocaleString()}</p>
               </div>
               <div className="text-center">
                 <p className="text-xs text-muted-foreground mb-1">Allocated</p>
                 <p className={`text-lg font-bold ${overBudget ? 'text-destructive' : 'text-blue-500'}`}>
-                  PKR {totalAllocated.toLocaleString()}
+                  {currency} {totalAllocated.toLocaleString()}
                 </p>
               </div>
               <div className="text-center">
                 <p className="text-xs text-muted-foreground mb-1">Remaining</p>
                 <p className={`text-lg font-bold ${overBudget ? 'text-destructive' : 'text-green-500'}`}>
-                  PKR {remaining.toLocaleString()}
+                  {currency} {remaining.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -416,7 +419,7 @@ export default function ManageBudget() {
             {overBudget && (
               <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
                 <p className="text-sm text-destructive font-medium">
-                  ⚠️ Total allocations exceed monthly budget by PKR {(totalAllocated - monthlyBudget).toLocaleString()}
+                  ⚠️ Total allocations exceed monthly budget by {currency} {(totalAllocated - monthlyBudget).toLocaleString()}
                 </p>
               </div>
             )}
@@ -472,7 +475,7 @@ export default function ManageBudget() {
                       }}
                       formatter={(value: number, name: string) => {
                         const category = categoriesWithExpenses.find(c => c.id === name);
-                        return [`₨${value.toLocaleString()}`, category?.name || name];
+                        return [`${currency} ${value.toLocaleString()}`, category?.name || name];
                       }}
                       labelFormatter={(label, payload) => {
                         if (payload && payload[0]) {
@@ -554,7 +557,7 @@ export default function ManageBudget() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <Label htmlFor="extra-income">Amount (PKR) *</Label>
+                <Label htmlFor="extra-income">Amount ({currency}) *</Label>
                 <Input
                   id="extra-income"
                   type="number"

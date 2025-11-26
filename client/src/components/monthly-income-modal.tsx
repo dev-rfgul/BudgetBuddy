@@ -9,6 +9,7 @@ import { AlertCircle, TrendingUp, DollarSign } from "lucide-react";
 import { storageService } from "@/lib/storage";
 import { useCreateBudget } from "@/hooks/use-budget";
 import { useToast } from "@/hooks/use-toast";
+import { useSettings } from "@/hooks/use-settings";
 
 interface MonthlyIncomeModalProps {
     isOpen: boolean;
@@ -20,6 +21,8 @@ export function MonthlyIncomeModal({ isOpen, currentMonth, onComplete }: Monthly
     const [, setLocation] = useLocation();
     const { toast } = useToast();
     const createBudget = useCreateBudget();
+    const { data: settings } = useSettings();
+    const currency = settings?.currency || 'PKR';
 
     const [income, setIncome] = useState("");
     const [loading, setLoading] = useState(true);
@@ -162,7 +165,7 @@ export function MonthlyIncomeModal({ isOpen, currentMonth, onComplete }: Monthly
                             <Alert className="bg-green-50 border-green-200">
                                 <TrendingUp className="h-4 w-4 text-green-600" />
                                 <AlertDescription className="text-green-800">
-                                    <strong>Great job!</strong> You have <strong>PKR {rolloverData.rollover.toLocaleString()}</strong> remaining from last month that will be added to your new budget.
+                                    <strong>Great job!</strong> You have <strong>{currency} {rolloverData.rollover.toLocaleString()}</strong> remaining from last month that will be added to your new budget.
                                 </AlertDescription>
                             </Alert>
                         )}
@@ -172,7 +175,7 @@ export function MonthlyIncomeModal({ isOpen, currentMonth, onComplete }: Monthly
                             <Alert variant="destructive">
                                 <AlertCircle className="h-4 w-4" />
                                 <AlertDescription>
-                                    You overspent by PKR {Math.abs(rolloverData.remaining).toLocaleString()} last month. Starting fresh this month!
+                                    You overspent by {currency} {Math.abs(rolloverData.remaining).toLocaleString()} last month. Starting fresh this month!
                                 </AlertDescription>
                             </Alert>
                         )}
@@ -182,7 +185,7 @@ export function MonthlyIncomeModal({ isOpen, currentMonth, onComplete }: Monthly
                             <Label htmlFor="income">Monthly Income *</Label>
                             <div className="relative">
                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                                    PKR
+                                    {currency}
                                 </span>
                                 <Input
                                     id="income"
@@ -204,17 +207,17 @@ export function MonthlyIncomeModal({ isOpen, currentMonth, onComplete }: Monthly
                             <div className="rounded-lg bg-primary/5 p-4 space-y-2">
                                 <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">New Income:</span>
-                                    <span className="font-medium">PKR {parseFloat(income).toLocaleString()}</span>
+                                    <span className="font-medium">{currency} {parseFloat(income).toLocaleString()}</span>
                                 </div>
                                 {rolloverData && rolloverData.rollover > 0 && (
                                     <div className="flex justify-between text-sm">
                                         <span className="text-muted-foreground">Previous Rollover:</span>
-                                        <span className="font-medium text-green-600">+ PKR {rolloverData.rollover.toLocaleString()}</span>
+                                        <span className="font-medium text-green-600">+ {currency} {rolloverData.rollover.toLocaleString()}</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between text-base font-semibold pt-2 border-t">
                                     <span>Total Available:</span>
-                                    <span className="text-primary">PKR {totalAvailable.toLocaleString()}</span>
+                                    <span className="text-primary">{currency} {totalAvailable.toLocaleString()}</span>
                                 </div>
                             </div>
                         )}

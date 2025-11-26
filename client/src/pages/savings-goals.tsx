@@ -17,6 +17,7 @@ import { Link } from "wouter";
 export default function SavingsGoals() {
     const { data: goals = [] } = useSavingsGoals();
     const { data: settings } = useSettings();
+    const currency = settings?.currency || 'PKR';
     const createGoal = useCreateSavingsGoal();
     const updateGoal = useUpdateSavingsGoal();
     const deleteGoal = useDeleteSavingsGoal();
@@ -88,12 +89,7 @@ export default function SavingsGoals() {
         }
     };
 
-    const getCurrencySymbol = () => {
-        if (settings?.currency === 'USD') return '$';
-        if (settings?.currency === 'EUR') return '€';
-        if (settings?.currency === 'GBP') return '£';
-        return settings?.currency || 'PKR';
-    };
+
 
     return (
         <div className="min-h-screen bg-background pb-20">
@@ -176,7 +172,7 @@ export default function SavingsGoals() {
                                             <div>
                                                 <p className="font-medium">{goal.name}</p>
                                                 <p className="text-sm text-muted-foreground">
-                                                    {getCurrencySymbol()} {Number(goal.currentAmount).toLocaleString()} / {Number(goal.targetAmount).toLocaleString()}
+                                                    {currency} {Number(goal.currentAmount).toLocaleString()} / {Number(goal.targetAmount).toLocaleString()}
                                                 </p>
                                             </div>
                                         </div>
