@@ -2,6 +2,7 @@
 export interface Budget {
   id: string;
   monthlyIncome: string;
+  previousMonthRollover?: string; // Amount rolled over from previous month
   month: string; // Format: "2024-12"
   createdAt: Date | null;
 }
@@ -45,6 +46,7 @@ export interface BudgetSummary {
   totalAllocated: number;
   totalSpent: number;
   remainingBudget: number;
+  unallocatedAmount: number; // Amount not allocated to any category
   daysLeft: number;
   categoryCount: number;
 }
