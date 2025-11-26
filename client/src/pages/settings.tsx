@@ -2,6 +2,7 @@ import { useSettings, useUpdateSettings } from "@/hooks/use-settings";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ModeToggle } from "@/components/mode-toggle";
 import DataManagement from "@/components/data-management";
 import BottomNavigation from "@/components/bottom-navigation";
 import { ArrowLeft } from "lucide-react";
@@ -37,9 +38,12 @@ export default function Settings() {
 
             <div className="max-w-md mx-auto px-4 mt-6 space-y-6">
                 <Card>
-                    <CardHeader>
-                        <CardTitle>Preferences</CardTitle>
-                        <CardDescription>Customize your experience</CardDescription>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <div className="space-y-1">
+                            <CardTitle>Preferences</CardTitle>
+                            <CardDescription>Customize your experience</CardDescription>
+                        </div>
+                        <ModeToggle />
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
