@@ -225,6 +225,68 @@ class StorageService {
       .slice(0, limit);
   }
 
+  // Calculate previous month's remaining balance and detect overspending
+  async calculatePreviousMonthRemaining(month: string): Promise<{ remaining: number; wasOverspent: boolean; rollover: number }> {
+    // Get previous month in YYYY-MM format
+    const [year, monthNum] = month.split('-').map(Number);
+    const prevDate = new Date(year, monthNum - 2, 1); // monthNum is 1-indexed, so -2 gets previous month
+    const prevMonth = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+    
+    const prevBudget = await this.getBudget(prevMonth);
+    if (!prevBudget) {
+      return { remaining: 0, wasOverspent: false, rollover: 0 };
+    }
+
+    const allocations = await this.getBudgetAllocations(prevBudget.id);
+    const expenses = await this.getExpenses(prevBudget.id);
+    
+    const totalAllocated = allocations.reduce((sum, a) => sum + Number(a.allocatedAmount), 0);
+    const totalSpent = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
+    
+    const remaining = totalAllocated - totalSpent;
+    const wasOverspent = totalSpent > totalAllocated;
+    const rollover = Math.max(0, remaining); // Only positive rollover
+    
+    return { remaining, wasOverspent, rollover };
+  }
+
+  // Get total allocated amount from previous month
+  async getPreviousMonthTotalAllocated(month: string): Promise<number> {
+    const [year, monthNum] = month.split('-').map(Number);
+    const prevDate = new Date(year, monthNum - 2, 1);
+    const prevMonth = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+    
+    const prevBudget = await this.getBudget(prevMonth);
+    if (!prevBudget) return 0;
+
+    const allocations = await this.getBudgetAllocations(prevBudget.id);
+    return allocations.reduce((sum, a) => sum + Number(a.allocatedAmount), 0);
+  }
+
+  // Create budget with automatic rollover calculation
+  async createBudgetWithRollover(budgetData: { monthlyIncome: string; month: string }): Promise<Budget> {
+    const db = await initDB();
+    const { rollover } = await this.calculatePreviousMonthRemaining(budgetData.month);
+    
+    const newBudget: Budget = {
+      id: crypto.randomUUID(),
+      monthlyIncome: budgetData.monthlyIncome,
+      previousMonthRollover: rollover > 0 ? String(rollover) : undefined,
+      month: budgetData.month,
+      createdAt: new Date(),
+    };
+    
+    // Check if exists
+    const existing = await db.getFromIndex('budgets', 'by-month', budgetData.month);
+    if (existing) {
+      await db.delete('budgets', existing.id);
+    }
+    
+    await db.put('budgets', newBudget);
+    return newBudget;
+  }
+
+
   // Category operations
   async getCategories(): Promise<Category[]> {
     const db = await initDB();
@@ -511,10 +573,14 @@ class StorageService {
     const expenses = await this.getExpenses(budgetId);
     const categoriesWithAllocations = await this.getCategoriesWithAllocations(budgetId);
 
-    const monthlyBudget = Number(budget.monthlyIncome);
+    const monthlyIncome = Number(budget.monthlyIncome);
+    const rollover = Number(budget.previousMonthRollover || 0);
+    const totalAvailable = monthlyIncome + rollover;
+    
     const totalAllocated = allocations.reduce((sum, a) => sum + Number(a.allocatedAmount), 0);
     const totalSpent = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
-    const remainingBudget = monthlyBudget - totalAllocated;
+    const remainingBudget = totalAvailable - totalAllocated;
+    const unallocatedAmount = Math.max(0, remainingBudget); // Positive unallocated only
 
     const now = new Date();
     const year = now.getFullYear();
@@ -523,10 +589,11 @@ class StorageService {
     const daysLeft = lastDay - now.getDate();
 
     return {
-      monthlyBudget,
+      monthlyBudget: totalAvailable, // Total available including rollover
       totalAllocated,
       totalSpent,
       remainingBudget,
+      unallocatedAmount,
       daysLeft: Math.max(0, daysLeft),
       categoryCount: categoriesWithAllocations.length,
     };

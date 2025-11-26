@@ -11,6 +11,7 @@ import BottomNavigation from "@/components/bottom-navigation";
 import SpendingChart from "@/components/spending-chart";
 import CategoryChartModal from "@/components/category-chart-modal";
 import MonthSelector from "@/components/month-selector";
+import { MonthlyIncomeModal } from "@/components/monthly-income-modal";
 import { useCurrentBudget, useBudgetByMonth, useBudgetSummary } from "@/hooks/use-budget";
 import { useCategoriesWithAllocations, useExpenses } from "@/hooks/use-expenses";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,6 +20,7 @@ import { type CategoryWithAllocation } from "@/types";
 const COLORS = ['#2ECC71', '#3498DB', '#E74C3C', '#F39C12', '#9B59B6', '#1ABC9C', '#E67E22', '#8E44AD'];
 
 import { useSettings } from "@/hooks/use-settings";
+import { queryClient } from "@/lib/queryClient";
 
 export default function Dashboard() {
   const { data: settings } = useSettings();
@@ -47,30 +49,17 @@ export default function Dashboard() {
     .sort((a, b) => b.allocated - a.allocated) // Sort by allocation amount
     .slice(0, 6); // Show top 6 categories
 
-  // If no budget exists for current month (and we're viewing current month), redirect to budget setup
-  // But allow viewing historical months even if current month isn't set up yet (though unlikely)
+  // If no budget exists for current month (and we're viewing current month), show income modal
   const isCurrentMonth = selectedMonth === new Date().toISOString().slice(0, 7);
+  const currentMonthStr = new Date().toISOString().slice(0, 7);
 
-  if (isCurrentMonth && !budgetLoading && !budget && !currentBudget) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="w-full max-w-md mx-4">
-          <CardContent className="pt-6 text-center">
-            <DollarSign className="w-12 h-12 text-primary mx-auto mb-4" />
-            <h1 className="text-xl font-semibold mb-2">Welcome to Expense Tracker</h1>
-            <p className="text-muted-foreground mb-6">
-              Let's set up your first budget to get started tracking your expenses.
-            </p>
-            <Link href="/budget-setup">
-              <Button className="w-full" data-testid="button-setup-budget">
-                Set Up Budget
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  // Show income modal if viewing current month and no budget exists
+  const showIncomeModal = isCurrentMonth && !budgetLoading && !budget;
+
+  const handleIncomeComplete = () => {
+    // Refresh budget data
+    queryClient.invalidateQueries({ queryKey: ["budget"] });
+  };
 
   const recentExpenses = expenses.slice(-3).reverse();
 
@@ -255,6 +244,13 @@ export default function Dashboard() {
         }}
         category={selectedCategory}
         expenses={expenses}
+      />
+
+      {/* Monthly Income Modal */}
+      <MonthlyIncomeModal
+        isOpen={showIncomeModal}
+        currentMonth={currentMonthStr}
+        onComplete={handleIncomeComplete}
       />
     </div>
   );

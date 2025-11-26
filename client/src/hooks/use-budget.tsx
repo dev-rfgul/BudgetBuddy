@@ -10,31 +10,9 @@ export function useCurrentBudget() {
     queryKey: ["budget", currentMonth],
     queryFn: async () => {
       try {
-        let budget = await storageService.getBudget(currentMonth);
-        if (budget) return budget;
-
-        // No budget for current month - attempt to create one by copying the most recent budget
-        const all = await storageService.getBudgets();
-        if (all.length === 0) return null;
-
-        // Find the most recent budget by month string (ISO YYYY-MM works for lexicographic sort)
-        const sorted = all.slice().sort((a, b) => (a.month < b.month ? 1 : -1));
-        const last = sorted[0];
-
-        // Create new budget for currentMonth using last's monthlyIncome
-        const created = await storageService.createBudget({ month: currentMonth, monthlyIncome: last.monthlyIncome });
-
-        // Copy allocations from last budget to created budget
-        try {
-          await storageService.copyAllocations(last.id, created.id);
-        } catch (e) {
-          // non-fatal
-          console.warn('Failed to copy allocations for new month', e);
-        }
-
-        // Invalidate relevant queries and return created
-        queryClient.invalidateQueries({ queryKey: ["budget"] });
-        return created;
+        const budget = await storageService.getBudget(currentMonth);
+        // Return null if no budget exists - this will trigger income entry modal
+        return budget || null;
       } catch (error) {
         return null;
       }
